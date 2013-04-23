@@ -36,15 +36,6 @@ struct name
 };
 EXCES_REG_COMPONENT(name)
 
-struct ble
-{
-	template <typename T>
-	struct apply
-	{
-		typedef std::vector<T> type;
-	};
-};
-
 int main(void)
 {
 	std::vector<exces::entity> e(4);
