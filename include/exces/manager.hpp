@@ -12,6 +12,7 @@
 
 #include <exces/entity.hpp>
 #include <exces/storage.hpp>
+#include <exces/component.hpp>
 
 #include <array>
 #include <vector>
@@ -19,6 +20,8 @@
 #include <bitset>
 #include <cassert>
 #include <stdexcept>
+#include <functional>
+#include <iterator>
 
 namespace exces {
 
@@ -153,6 +156,19 @@ private:
 		_component_key_vector _component_keys;
 	};
 
+	// helper functor that reserves storage space for a Component
+	struct _component_reserver
+	{
+		_component_storage& _storage;
+		std::size_t n;
+
+		template <typename Component>
+		void operator()(mp::identity<Component>) const
+		{
+			_storage.template reserve<Component>(n);
+		}
+	};
+
 	// helper functor that sets the bit in a bitset for a particular
 	// Component to the specified Value
 	template <bool Value>
@@ -272,7 +288,7 @@ private:
 	// pointed to by pos
 	template <typename Component>
 	typename _component_storage::key_t _get_component_key(
-		typename _entity_info_map::const_iterator pos
+		typename _entity_info_map::iterator pos
 	)
 	{
 		std::size_t cid = component_id<Component>::value;
@@ -290,12 +306,77 @@ private:
 		return pos->second._component_keys[cidx];
 	}
 public:
+	/// Key for O(1) access to entity data
+	typedef typename _entity_info_map::iterator entity_key;
+
+	/// Returns a vector of keys for O(1) access to entities
+	/**
+	 *  The returned keys are invalidated by removal of the entity
+	 *  from the manager.
+	 */
+	template <typename Iterator>
+	std::vector<entity_key> get_keys(Iterator cur, Iterator end)
+	{
+		std::size_t n = distance(cur, end);
+		std::vector<entity_key> result(n);
+		_entity_info init;
+		for(std::size_t i=0; i!=n; ++i)
+		{
+			assert(cur != end);
+			result[i] = _entities.insert(
+				_entity_info_entry(*cur, init)
+			).first;
+			++cur;
+		}
+		return std::move(result);
+	}
+
+	/// Returns a vector of keys for O(1) access to entities
+	/**
+	 *  The returned keys are invalidated by removal of the entity
+	 *  from the manager.
+	 */
+	std::vector<entity_key> get_keys(const std::vector<entity>& es)
+	{
+		return get_keys(es.begin(), es.end());
+	}
+
+	/// Get a key for O(1) access to the specified entity
+	/**
+	 *  The returned keys are invalidated by removal of the entity
+	 *  from the manager.
+	 */
+	entity_key get_key(entity e)
+	{
+		return _get_entity(e);
+	}
+
+	/// Get the entity pointed to by key
+	entity get_entity(entity_key k)
+	{
+		return k->first;
+	}
+
+	/// Reserves space for n instances of Components in Seqence
+	template <typename Sequence>
+	manager& reserve_seq(std::size_t n, Sequence seq = Sequence())
+	{
+		_component_reserver reserver = { _storage, n };
+		mp::for_each<Sequence>(reserver);
+		return *this;
+	}
+
+	/// Reserves storage space 
+	template <typename ... Components>
+	manager& reserve(std::size_t n)
+	{
+		return reserve_seq(n, mp::typelist<Components...>());
+	}
+
 	/// Adds the specified components to the specified entity
 	template <typename Sequence>
-	manager& add_seq(entity e, Sequence seq)
+	manager& add_seq(entity_key p, Sequence seq)
 	{
-		typename _entity_info_map::iterator p = _get_entity(e);
-
 		_component_bitset  old_bits = p->second._component_bits;
 
 		_component_bit_setter<true> bset = { p->second._component_bits };
@@ -341,6 +422,20 @@ public:
 	}
 
 	/// Adds the specified components to the specified entity
+	template <typename Sequence>
+	manager& add_seq(entity e, Sequence seq)
+	{
+		return add_seq(get_key(e), seq);
+	}
+
+	/// Adds the specified components to the specified entity
+	template <typename ... Components>
+	manager& add(entity_key k, Components ... c)
+	{
+		return add_seq(k, mp::make_tuple(c...));
+	}
+
+	/// Adds the specified components to the specified entity
 	template <typename ... Components>
 	manager& add(entity e, Components ... c)
 	{
@@ -349,9 +444,8 @@ public:
 
 	/// Removes the specified components from the specified entity
 	template <typename Sequence>
-	manager& remove_seq(entity e, const Sequence& seq = Sequence())
+	manager& remove_seq(entity_key p, const Sequence& seq = Sequence())
 	{
-		typename _entity_info_map::iterator p = _get_entity(e);
 		_component_bitset _rem_bits = _get_bits(seq);
 		if((p->second._component_bits & _rem_bits) != _rem_bits)
 		{
@@ -408,6 +502,20 @@ public:
 	}
 
 	/// Removes the specified components from the specified entity
+	template <typename Sequence>
+	manager& remove_seq(entity e, const Sequence& seq = Sequence())
+	{
+		return remove_seq(get_key(e), seq);
+	}
+
+	/// Removes the specified components from the specified entity
+	template <typename ... Components>
+	manager& remove(entity_key k)
+	{
+		return remove_seq<mp::typelist<Components...> >(k);
+	}
+
+	/// Removes the specified components from the specified entity
 	template <typename ... Components>
 	manager& remove(entity e)
 	{
@@ -416,11 +524,12 @@ public:
 
 	/// Copy the specified components between the specified entities
 	template <typename Sequence>
-	manager& copy_seq(entity from, entity to, const Sequence& seq=Sequence())
+	manager& copy_seq(
+		entity_key f,
+		entity_key t,
+		const Sequence& seq=Sequence()
+	)
 	{
-		typename _entity_info_map::iterator f = _get_entity(from);
-		typename _entity_info_map::iterator t = _get_entity(to);
-
 		_entity_info& fei = f->second;
 		_entity_info& tei = t->second;
 
@@ -442,6 +551,20 @@ public:
 	}
 
 	/// Copy the specified components between the specified entities
+	template <typename Sequence>
+	manager& copy_seq(entity from, entity to, const Sequence& seq=Sequence())
+	{
+		return copy_seq(_get_entity(from), _get_entity(to), seq);
+	}
+
+	/// Copy the specified components between the specified entities
+	template <typename ... Components>
+	manager& copy(entity_key f, entity_key t)
+	{
+		return copy_seq(f, t, mp::typelist<Components...>());
+	}
+
+	/// Copy the specified components between the specified entities
 	template <typename ... Components>
 	manager& copy(entity from, entity to)
 	{
@@ -449,23 +572,79 @@ public:
 	}
 
 	/// Returns if the specified entity has all the specified Components
-	template <typename ... Components>
-	bool has_all(entity e)
+	template <typename Sequence>
+	bool has_all_seq(entity_key p, Sequence seq = Sequence())
 	{
-		_component_bitset _req_bits = _get_bits<Components...>();
+		_component_bitset _req_bits = _get_bits(seq);
+		assert(p != _entities.end());
+		return ((p->second._component_bits & _req_bits) == _req_bits);
+	}
+
+	/// Returns if the specified entity has all the specified Components
+	template <typename Sequence>
+	bool has_all_seq(entity e, Sequence seq = Sequence())
+	{
+		_component_bitset _req_bits = _get_bits(seq);
 		typename _entity_info_map::const_iterator p = _entities.find(e);
 		if(p == _entities.end()) return false;
 		return ((p->second._component_bits & _req_bits) == _req_bits);
+	}
+
+	/// Returns if the specified entity has all the specified Components
+	template <typename ... Components>
+	bool has_all(entity_key p)
+	{
+		return has_all_seq(p, mp::typelist<Components...>());
+	}
+
+	/// Returns if the specified entity has all the specified Components
+	template <typename ... Components>
+	bool has_all(entity e)
+	{
+		return has_all_seq(e, mp::typelist<Components...>());
+	}
+
+	/// Returns if the specified entity has some of the Components
+	template <typename Sequence>
+	bool has_some_seq(entity_key p, Sequence seq = Sequence())
+	{
+		_component_bitset _req_bits = _get_bits(seq);
+		assert(p != _entities.end());
+		return (p->second._component_bits & _req_bits).any();
+	}
+
+	/// Returns if the specified entity has some of the Components
+	template <typename Sequence>
+	bool has_some_seq(entity e, Sequence seq = Sequence())
+	{
+		_component_bitset _req_bits = _get_bits(seq);
+		typename _entity_info_map::const_iterator p = _entities.find(e);
+		if(p == _entities.end()) return false;
+		return (p->second._component_bits & _req_bits).any();
+	}
+
+	/// Returns if the specified entity has some of the Components
+	template <typename ... Components>
+	bool has_some(entity_key p)
+	{
+		return has_some_seq(p, mp::typelist<Components...>());
 	}
 
 	/// Returns if the specified entity has some of the Components
 	template <typename ... Components>
 	bool has_some(entity e)
 	{
-		_component_bitset _req_bits = _get_bits<Components...>();
-		typename _entity_info_map::const_iterator p = _entities.find(e);
-		if(p == _entities.end()) return false;
-		return (p->second._component_bits & _req_bits).any();
+		return has_some_seq(e, mp::typelist<Components...>());
+	}
+
+	/// Gets the specified component of the specified entity
+	template <typename Component>
+	Component& access(entity_key p)
+	{
+		assert(p != _entities.end());
+		return _storage.template access<Component>(
+			_get_component_key<Component>(p)
+		);
 	}
 
 	/// Gets the specified component of the specified entity
@@ -477,12 +656,56 @@ public:
 		);
 	}
 
-	/// Calls the specified function on each entity with all Components
+	/// Gets a shared reference to entity's component
+	/**
+	 *  The manager that created this reference must not be destroyed
+	 *  while any copies of the reference are still valid. Then the
+	 *  instance of the referenced component remains valid even if
+	 *  if is removed from the entity.
+	 */
+	template <typename Component>
+	shared_component<Component, Group> ref(entity_key p)
+	{
+		std::size_t cid = component_id<Component>::value;
+		typename _component_storage::key_t key;
+		if(p->second._component_bits.test(cid))
+		{
+
+			typename component_index<Component>::type cidx =
+				_component_indices.get(
+					p->second._component_bits
+				)[cid];
+
+			key = p->second._component_keys[cidx];
+		}
+		else
+		{
+			key = _storage.null_key();
+		}
+
+		return shared_component<Component, Group>(_storage, key);
+	}
+
+	/// Gets a shared reference to entity's component
+	template <typename Component>
+	shared_component<Component, Group> ref(entity e)
+	{
+		return ref<Component>(_find_entity(e));
+	}
+
+	/// Calls the specified function on each entity having specified Components
 	template <typename ... Components>
-	manager& for_each(const std::function<void (Components& ...)>& function)
+	manager& for_each(
+		const std::function<void (
+			manager&,
+			entity_key,
+			entity,
+			Components& ...
+		)>& function
+	)
 	{
 		_component_bitset _req_bits = _get_bits<Components...>();
-		typename _entity_info_map::const_iterator
+		typename _entity_info_map::iterator
 			i = _entities.begin(),
 			e = _entities.end();
 
@@ -492,6 +715,9 @@ public:
 			if((i->second._component_bits & _req_bits) == _req_bits)
 			{
 				function(
+					*this,
+					i,
+					i->first,
 					_storage.template access<Components>(
 						_get_component_key<Components>(i)
 					)...
@@ -503,7 +729,7 @@ public:
 		return *this;
 	}
 
-	/// Calls the specified function on each entity with all Components
+	/// Calls the specified function on each entity having specified Components
 	template <typename ... Components>
 	manager& for_each(
 		const std::function<void (
@@ -513,28 +739,108 @@ public:
 		)>& function
 	)
 	{
-		_component_bitset _req_bits = _get_bits<Components...>();
-		typename _entity_info_map::const_iterator
-			i = _entities.begin(),
-			e = _entities.end();
-
-		while(i != e)
+		std::function<void (manager&, entity_key, entity, Components& ...)> wf =
+		[&function](manager& m, entity_key, entity e, Components& ... components)
 		{
-			// if the current entity has all requested components
-			if((i->second._component_bits & _req_bits) == _req_bits)
+			function(m, e, components...);
+		};
+		return for_each(wf);
+	}
+
+	/// Calls the specified function on each entity having specified Components
+	template <typename ... Components>
+	manager& for_each(const std::function<void (Components& ...)>& function)
+	{
+		std::function<void (manager&, entity_key, entity, Components& ...)> wf =
+		[&function](manager&, entity_key, entity, Components& ... components)
+		{
+			function(components...);
+		};
+		return for_each(wf);
+	}
+
+	/// Range for traversal of entities that are the result of a query
+	struct entity_range
+	{
+	private:
+		manager& _m;
+		entity_key _i;
+		const entity_key _e;
+		std::function<bool (manager&, entity_key)> _pred;
+
+		void _skip(void)
+		{
+			while(!empty() && !_pred(_m, front()))
 			{
-				function(
-					*this,
-					i->first,
-					_storage.template access<Components>(
-						_get_component_key<Components>(i)
-					)...
-				);
+				++_i;
 			}
-			++i;
+		}
+	public:
+		entity_range(
+			manager& man,
+			entity_key i,
+			entity_key e,
+			std::function<bool (manager&, entity_key)> pred
+		): _m(man)
+		 , _i(i)
+		 , _e(e)
+		 , _pred(pred)
+		{
+			_skip();
 		}
 
-		return *this;
+		/// Indicates that the range is empty (the traversal is done)
+		bool empty(void) const
+		{
+			return _i == _e;
+		}
+
+		/// Returns the current front element of the range
+		entity_key front(void) const
+		{
+			assert(!empty());
+			return _i;
+		}
+
+		/// Moves the front of the range one element ahead
+		void next(void)
+		{
+			assert(!empty());
+			++_i;
+			_skip();
+		}
+	};
+
+	/// Returns an entity_range containing entities satisfying predicate
+	entity_range select(std::function<bool(manager&, entity_key)> predicate)
+	{
+		return entity_range(
+			*this, 
+			_entities.begin(),
+			_entities.end(),
+			predicate
+		);
+	}
+
+	template <typename Sequence>
+	struct with_components
+	{
+		bool operator ()(manager& m, entity_key key) const
+		{
+			return m.has_all_seq(key, Sequence());
+		}
+	};
+
+	template <typename Sequence>
+	entity_range select_with_seq(Sequence seq = Sequence())
+	{
+		return select(with_components<Sequence>());
+	}
+
+	template <typename ... Components>
+	entity_range select_with(void)
+	{
+		return select_with_seq(mp::typelist<Components...>());
 	}
 };
 

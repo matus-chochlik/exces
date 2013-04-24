@@ -122,6 +122,12 @@ public:
 	}
 
 	template <typename Component>
+	void reserve(std::size_t n)
+	{
+		_store_of<Component>().reserve(n);
+	}
+
+	template <typename Component>
 	Component& access(key_t key)
 	{
 		return _store_of<Component>()[key]._component;
