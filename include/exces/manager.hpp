@@ -453,7 +453,8 @@ public:
 	bool has_all(entity e)
 	{
 		_component_bitset _req_bits = _get_bits<Components...>();
-		typename _entity_info_map::const_iterator p = _find_entity(e);
+		typename _entity_info_map::const_iterator p = _entities.find(e);
+		if(p == _entities.end()) return false;
 		return ((p->second._component_bits & _req_bits) == _req_bits);
 	}
 
@@ -462,7 +463,8 @@ public:
 	bool has_some(entity e)
 	{
 		_component_bitset _req_bits = _get_bits<Components...>();
-		typename _entity_info_map::const_iterator p = _find_entity(e);
+		typename _entity_info_map::const_iterator p = _entities.find(e);
+		if(p == _entities.end()) return false;
 		return (p->second._component_bits & _req_bits).any();
 	}
 

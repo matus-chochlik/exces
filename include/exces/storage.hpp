@@ -14,6 +14,7 @@
 #include <exces/metaprog.hpp>
 
 #include <vector>
+#include <cassert>
 
 namespace exces {
 
@@ -24,17 +25,67 @@ private:
 	template <typename Component>
 	struct _component_entry
 	{
+		// negative reference count (if < 0)
+		// or the next free component entry
+		// in the vector
+		int _neg_rc_or_nf;
 		Component _component;
 
 		_component_entry(Component&& component)
-		 : _component(std::move(component))
+		 : _neg_rc_or_nf(0)
+		 , _component(std::move(component))
 		{ }
 	};
 
 	template <typename Component>
-	struct _component_vector
+	class _component_vector
 	 : public std::vector<_component_entry<Component> >
 	{
+	private:
+		int _next_free;
+	public:
+		typedef std::size_t key_t;
+
+		_component_vector(void)
+		 : _next_free(-1)
+		{ }
+
+		key_t store(Component&& component)
+		{
+			key_t result;
+			if(_next_free >= 0)
+			{
+				result = key_t(_next_free);
+				this->at(result)._component =
+					std::move(component);
+				_next_free = this->at(result)._neg_rc_or_nf;
+				this->at(result)._neg_rc_or_nf = -1;
+			}
+			else
+			{
+				result = this->size();
+				this->push_back(std::move(component));
+				this->back()._neg_rc_or_nf = -1;
+			}
+			return result;
+		}
+
+		void add_ref(key_t key)
+		{
+			assert(this->at(key)._neg_rc_or_nf < 0);
+			--this->at(key)._neg_rc_or_nf;
+		}
+
+		void release(key_t key)
+		{
+			assert(this->at(key)._neg_rc_or_nf < 0);
+			if(++this->at(key)._neg_rc_or_nf == 0)
+			{
+				this->at(key)._neg_rc_or_nf = _next_free;
+				_next_free = int(key);
+
+			}
+		}
 	};
 
 	struct _add_component_vector_mf
@@ -79,11 +130,7 @@ public:
 	template <typename Component>
 	key_t store(Component&& component)
 	{
-		_component_vector<Component>& v = _store_of<Component>();
-		key_t result = v.size();
-		v.push_back(std::move(component));
-		add_ref<Component>(result);
-		return result;
+		return _store_of<Component>().store(std::move(component));
 	}
 
 	template <typename Component>
@@ -95,13 +142,13 @@ public:
 	template <typename Component>
 	void add_ref(key_t key)
 	{
-		// TODO:
+		_store_of<Component>().add_ref(key);
 	}
 
 	template <typename Component>
 	void release(key_t key)
 	{
-		// TODO:
+		_store_of<Component>().release(key);
 	}
 };
 
