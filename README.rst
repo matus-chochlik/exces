@@ -4,7 +4,7 @@ exces
 
 :Author: Matúš Chochlík <chochlik@gmail.com>
 
-ExCES is a simple component/entity system.
+ExCES is a simple experimental component/entity system.
 
 
 License

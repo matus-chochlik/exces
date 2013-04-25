@@ -160,7 +160,7 @@ private:
 	struct _component_reserver
 	{
 		_component_storage& _storage;
-		std::size_t n;
+		const std::size_t n;
 
 		template <typename Component>
 		void operator()(mp::identity<Component>) const
@@ -180,15 +180,15 @@ private:
 		void operator()(mp::identity<Component>) const
 		{
 			_component_bits.set(	
-				component_id<Component>::value,
+				component_id<Component, Group>::value,
 				Value
 			);
 		}
 	};
 
-	// gets the bitset for the specified components
+	// generates the bitset for the specified components
 	template <typename Sequence>
-	static _component_bitset _get_bits(const Sequence&)
+	static _component_bitset _gen_bits(const Sequence&)
 	{
 		_component_bitset _bits;
 		_component_bit_setter<true> bset = { _bits };
@@ -196,8 +196,16 @@ private:
 		return std::move(_bits);
 	}
 
+	// gets the bitset for the specified components
+	template <typename Sequence>
+	static const _component_bitset& _get_bits(const Sequence& seq)
+	{
+		static _component_bitset _bits = _gen_bits(seq);
+		return _bits;
+	}
+
 	template <typename ... Components>
-	static _component_bitset _get_bits(void)
+	static const _component_bitset& _get_bits(void)
 	{
 		return _get_bits(mp::typelist<Components...>());
 	}
@@ -213,7 +221,7 @@ private:
 		template <typename Component>
 		void operator()(Component& component) const
 		{
-			std::size_t cid = component_id<Component>::value;
+			const std::size_t cid = component_id<Component, Group>::value;
 			_keys[cid] = _storage.store(std::move(component));
 		}
 	};
@@ -227,7 +235,7 @@ private:
 		template <typename Component>
 		void operator()(mp::identity<Component>) const
 		{
-			std::size_t cid = component_id<Component>::value;
+			const std::size_t cid = component_id<Component, Group>::value;
 			_storage.template release<Component>(_keys[cid]);
 		}
 	};
@@ -243,7 +251,7 @@ private:
 		template <typename Component>
 		void operator()(mp::identity<Component>) const
 		{
-			std::size_t cid = component_id<Component>::value;
+			const std::size_t cid = component_id<Component, Group>::value;
 			_dst_keys[_idx_map[cid]] =
 				_storage.template copy<Component>(
 					_src_keys[_idx_map[cid]]
@@ -291,7 +299,7 @@ private:
 		typename _entity_info_map::iterator pos
 	)
 	{
-		std::size_t cid = component_id<Component>::value;
+		const std::size_t cid = component_id<Component, Group>::value;
 		if(!pos->second._component_bits.test(cid))
 		{
 			throw ::std::invalid_argument(
@@ -300,7 +308,7 @@ private:
 			);
 		}
 
-		typename component_index<Component>::type cidx =
+		const typename component_index<Component>::type cidx =
 			_component_indices.get(pos->second._component_bits)[cid];
 
 		return pos->second._component_keys[cidx];
@@ -446,8 +454,8 @@ public:
 	template <typename Sequence>
 	manager& remove_seq(entity_key p, const Sequence& seq = Sequence())
 	{
-		_component_bitset _rem_bits = _get_bits(seq);
-		if((p->second._component_bits & _rem_bits) != _rem_bits)
+		_component_bitset rem_bits = _get_bits(seq);
+		if((p->second._component_bits & rem_bits) != rem_bits)
 		{
 			throw ::std::invalid_argument(
 				"exces::entity manager: "
@@ -458,9 +466,7 @@ public:
 
 		_component_bitset  old_bits = p->second._component_bits;
 
-		_component_bit_setter<false> bset = { p->second._component_bits };
-		mp::for_each<Sequence>(bset);
-
+		p->second._component_bits &= ~rem_bits;
 		_component_bitset& new_bits = p->second._component_bits;
 		
 		_component_key_vector  new_keys(new_bits.count());
@@ -666,7 +672,7 @@ public:
 	template <typename Component>
 	shared_component<Component, Group> ref(entity_key p)
 	{
-		std::size_t cid = component_id<Component>::value;
+		std::size_t cid = component_id<Component, Group>::value;
 		typename _component_storage::key_t key;
 		if(p->second._component_bits.test(cid))
 		{
@@ -691,6 +697,52 @@ public:
 	shared_component<Component, Group> ref(entity e)
 	{
 		return ref<Component>(_find_entity(e));
+	}
+
+	template <typename Visitor>
+	struct _visitor_wrapper
+	{
+		_component_storage& _storage;
+		manager& _manager;
+		entity_key _key;
+		entity _entity;
+		Visitor& _visitor;
+
+		template <typename Component>
+		void operator()(mp::identity<Component>) const
+		{
+			if(_manager.has_all<Component>(_entity))
+			{
+				_visitor(
+					_manager,
+					_key,
+					_entity,
+					_storage.template access<Component>(
+						_manager._get_component_key<Component>(_key)
+					)
+				);
+			}
+		}
+	};
+
+	template <typename Visitor>
+	manager& visit_each(Visitor visitor)
+	{
+		typename _entity_info_map::iterator
+			i = _entities.begin(),
+			e = _entities.end();
+
+		while(i != e)
+		{
+			_visitor_wrapper<Visitor> vw = { _storage, *this, i, i->first, visitor };
+			if(visitor(*this, i, i->first))
+			{
+				mp::for_each<typename components<Group>::type>(vw);
+				visitor();
+			}
+			++i;
+		}
+		return *this;
 	}
 
 	/// Calls the specified function on each entity having specified Components
@@ -755,6 +807,39 @@ public:
 		[&function](manager&, entity_key, entity, Components& ... components)
 		{
 			function(components...);
+		};
+		return for_each(wf);
+	}
+
+	template <typename ... Components, typename Func>
+	manager& for_each_mkec(Func functor)
+	{
+		std::function<void (manager&, entity_key, entity, Components& ...)> wf =
+		[&functor](manager& m, entity_key k, entity e, Components& ... components)
+		{
+			functor(m, k, e, components...);
+		};
+		return for_each(wf);
+	}
+
+	template <typename ... Components, typename Func>
+	manager& for_each_mec(Func functor)
+	{
+		std::function<void (manager&, entity_key, entity, Components& ...)> wf =
+		[&functor](manager& m, entity_key, entity e, Components& ... components)
+		{
+			functor(m, e, components...);
+		};
+		return for_each(wf);
+	}
+
+	template <typename ... Components, typename Func>
+	manager& for_each_comp(Func functor)
+	{
+		std::function<void (manager&, entity_key, entity, Components& ...)> wf =
+		[&functor](manager&, entity_key, entity, Components& ... components)
+		{
+			functor(components...);
 		};
 		return for_each(wf);
 	}

@@ -111,7 +111,7 @@ private:
 	template <typename Component>
 	_component_vector<Component>& _store_of(void)
 	{
-		return mp::get<component_id<Component>::value>(_store);
+		return mp::get<component_id<Component, Group>::value>(_store);
 	}
 public:
 	typedef std::size_t key_t;

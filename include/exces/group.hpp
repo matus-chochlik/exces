@@ -27,8 +27,11 @@ namespace exces {
 
 typedef EXCES_GROUP_SEL(default) default_group;
 
-template <typename Component, typename Group = default_group>
+template <typename Component, typename Group>
 struct component_id;
+
+template <typename Component, typename Group = default_group>
+struct component_name;
 
 template <typename Component, typename Group>
 struct component_id<const Component, Group>
@@ -43,6 +46,11 @@ template <> \
 struct component_id< COMPONENT, EXCES_GROUP_SEL(GROUP) > \
  : EXCES_COUNTER_CURRENT(EXCES_GROUP_SEL(GROUP)) \
 { }; \
+template <> \
+struct component_name< COMPONENT, EXCES_GROUP_SEL(GROUP) > \
+{ \
+	static const char* c_str(void) { return #COMPONENT ; } \
+}; \
 EXCES_ADD_TO_GLOBAL_LIST(EXCES_GROUP_SEL(GROUP), COMPONENT) \
 }
 
