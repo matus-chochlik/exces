@@ -229,15 +229,15 @@ public:
 		void operator()(manager& m, entity_key k, entity e, named& n) const
 		{
 			std::cout << n.name << ":";
-			if(m.has_all<container>(k))
+			if(m.has<container>(k))
 			{
 				std::cout << " contains { ";
 				contained_printer cp = { e };
 				// for each entity with the specified components
-				m.for_each_comp<named, contained>(cp);
+				m.for_each_c<named, contained>(cp);
 				std::cout << "}";
 			}
-			if(m.has_all<physical>(k))
+			if(m.has<physical>(k))
 			{
 				std::cout << " weight: " << ps.get_weight(k);
 				std::cout << " size: " << ps.get_size(k);

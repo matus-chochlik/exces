@@ -24,8 +24,8 @@ private:
 	typedef component_storage<Group> _storage;
 	_storage* _pstorage;
 
-	typedef typename _storage::key_t component_key_t;
-	component_key_t _key;
+	typedef typename _storage::component_key component_key;
+	component_key _key;
 
 	void _add_ref(void)
 	{
@@ -45,7 +45,7 @@ private:
 public:
 	shared_component(
 		_storage& storage,
-		component_key_t key
+		component_key key
 	): _pstorage(&storage)
 	 , _key(key)
 	{

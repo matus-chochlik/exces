@@ -44,18 +44,18 @@ private:
 	private:
 		int _next_free;
 	public:
-		typedef std::size_t key_t;
+		typedef std::size_t component_key;
 
 		_component_vector(void)
 		 : _next_free(-1)
 		{ }
 
-		key_t store(Component&& component)
+		component_key store(Component&& component)
 		{
-			key_t result;
+			component_key result;
 			if(_next_free >= 0)
 			{
-				result = key_t(_next_free);
+				result = component_key(_next_free);
 				this->at(result)._component =
 					std::move(component);
 				_next_free = this->at(result)._neg_rc_or_nf;
@@ -70,13 +70,13 @@ private:
 			return result;
 		}
 
-		void add_ref(key_t key)
+		void add_ref(component_key key)
 		{
 			assert(this->at(key)._neg_rc_or_nf < 0);
 			--this->at(key)._neg_rc_or_nf;
 		}
 
-		void release(key_t key)
+		void release(component_key key)
 		{
 			assert(this->at(key)._neg_rc_or_nf < 0);
 			if(++this->at(key)._neg_rc_or_nf == 0)
@@ -114,11 +114,11 @@ private:
 		return mp::get<component_id<Component, Group>::value>(_store);
 	}
 public:
-	typedef std::size_t key_t;
+	typedef std::size_t component_key;
 
-	static key_t null_key(void)
+	static component_key null_key(void)
 	{
-		return key_t(-1);
+		return component_key(-1);
 	}
 
 	template <typename Component>
@@ -128,31 +128,31 @@ public:
 	}
 
 	template <typename Component>
-	Component& access(key_t key)
+	Component& access(component_key key)
 	{
 		return _store_of<Component>()[key]._component;
 	}
 
 	template <typename Component>
-	key_t store(Component&& component)
+	component_key store(Component&& component)
 	{
 		return _store_of<Component>().store(std::move(component));
 	}
 
 	template <typename Component>
-	key_t copy(key_t key)
+	component_key copy(component_key key)
 	{
 		return store<Component>(Component(access<Component>(key)));
 	}
 
 	template <typename Component>
-	void add_ref(key_t key)
+	void add_ref(component_key key)
 	{
 		_store_of<Component>().add_ref(key);
 	}
 
 	template <typename Component>
-	void release(key_t key)
+	void release(component_key key)
 	{
 		_store_of<Component>().release(key);
 	}
