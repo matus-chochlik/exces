@@ -156,6 +156,12 @@ public:
 	{
 		_store_of<Component>().release(key);
 	}
+
+	template <typename Component>
+	void mark_write(component_key key)
+	{
+		// TODO
+	}
 };
 
 } // namespace exces

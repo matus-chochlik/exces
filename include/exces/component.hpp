@@ -87,15 +87,27 @@ public:
 		return !is_valid();
 	}
 
-	Component& ref(void)
+	const Component& read(void) const
 	{
 		assert(is_valid());
 		return _pstorage->template access<Component>(_key);
 	}
 
+	Component& write(void)
+	{
+		assert(is_valid());
+		_pstorage->template mark_write<Component>(_key);
+		return _pstorage->template access<Component>(_key);
+	}
+
+	const Component* operator -> (void) const
+	{
+		return &write();
+	}
+
 	Component* operator -> (void)
 	{
-		return &ref();
+		return &write();
 	}
 };
 

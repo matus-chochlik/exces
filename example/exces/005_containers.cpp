@@ -93,7 +93,7 @@ public:
 			
 			for(auto r = _manager.select_with<contained>(); !r.empty(); r.next())
 			{
-				if(_manager.access<contained>(r.front()).container == e)
+				if(r.front_component<contained>().read().container == e)
 					w += wc * get_weight(r.front());
 			}
 		}
@@ -120,7 +120,7 @@ public:
 				
 				for(auto r = _manager.select_with<contained>(); !r.empty(); r.next())
 				{
-					if(_manager.access<contained>(r.front()).container == e)
+					if(r.front_component<contained>().read().container == e)
 						s += sc * get_size(r.front());
 				}
 			}

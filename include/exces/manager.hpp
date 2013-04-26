@@ -13,6 +13,7 @@
 #include <exces/entity.hpp>
 #include <exces/storage.hpp>
 #include <exces/component.hpp>
+#include <exces/classification.hpp>
 
 #include <array>
 #include <vector>
@@ -21,6 +22,7 @@
 #include <cassert>
 #include <stdexcept>
 #include <functional>
+#include <algorithm>
 #include <iterator>
 
 namespace exces {
@@ -319,6 +321,114 @@ private:
 
 		return pos->second._component_keys[cidx];
 	}
+
+	std::vector<any_classification<Group>*> _classifications;
+	friend class any_classification<Group>;
+
+	void add_classification(any_classification<Group>* cl)
+	{
+		assert(cl != nullptr);
+		assert(std::find(
+			_classifications.begin(),
+			_classifications.end(),
+			cl
+		) == _classifications.end());
+
+		_classifications.push_back(cl);
+
+		typename _entity_info_map::iterator
+			i = _entities.begin(),
+			e = _entities.end();
+
+		while(i != e)
+		{
+			cl->insert(i);
+			++i;
+		}
+	}
+
+	void move_classification(
+		any_classification<Group>* old_cl,
+		any_classification<Group>* new_cl
+	)
+	{
+		assert(old_cl != nullptr);
+		assert(new_cl != nullptr);
+		assert(std::find(
+			_classifications.begin(),
+			_classifications.end(),
+			old_cl
+		) != _classifications.end());
+		assert(std::find(
+			_classifications.begin(),
+			_classifications.end(),
+			new_cl
+		) == _classifications.end());
+
+		std::replace(
+			_classifications.begin(),
+			_classifications.end(),
+			old_cl,
+			new_cl
+		);
+	}
+
+	void remove_classification(any_classification<Group>* cl)
+	{
+		auto p = std::find(
+			_classifications.begin(),
+			_classifications.end(),
+			cl
+		);
+		assert(p != _classifications.end());
+		_classifications.erase(p);
+	}
+
+	typedef std::vector<std::size_t> _class_update_key_list;
+
+	_class_update_key_list _begin_class_update(
+		typename _entity_info_map::iterator key
+	)
+	{
+		auto i = _classifications.begin();
+		auto e = _classifications.end();
+
+		std::size_t j = 0;
+		_class_update_key_list result(_classifications.size());
+
+		while(i != e)
+		{
+			any_classification<Group>* pc = *i;
+			assert(pc != nullptr);
+			result[j] = pc->begin_update(key);
+			++i;
+			++j;
+		}
+
+		return std::move(result);
+	}
+
+	void _finish_class_update(
+		typename _entity_info_map::iterator key,
+		const _class_update_key_list& update_keys
+	)
+	{
+		assert(_classifications.size() == update_keys.size());
+
+		auto i = _classifications.begin();
+		auto e = _classifications.end();
+
+		auto u = update_keys.begin();
+
+		while(i != e)
+		{
+			any_classification<Group>* pc = *i;
+			assert(pc != nullptr);
+			pc->finish_update(key, *u);
+			++i;
+			++u;
+		}
+	}
 public:
 	/// Key for O(1) access to entity data
 	typedef typename _entity_info_map::iterator entity_key;
@@ -391,6 +501,8 @@ public:
 	template <typename Sequence>
 	manager& add_seq(entity_key p, Sequence seq)
 	{
+		auto updates = _begin_class_update(p);
+
 		_component_bitset add_bits = _get_bits(seq);
 
 		_component_bitset  old_bits = p->second._component_bits;
@@ -433,6 +545,8 @@ public:
 		}
 		swap(new_keys, old_keys);
 
+		_finish_class_update(p, updates);
+
 		return *this;
 	}
 
@@ -461,6 +575,8 @@ public:
 	template <typename Sequence>
 	manager& remove_seq(entity_key p, const Sequence& seq = Sequence())
 	{
+		auto updates = _begin_class_update(p);
+
 		_component_bitset rem_bits = _get_bits(seq);
 		if((p->second._component_bits & rem_bits) != rem_bits)
 		{
@@ -512,6 +628,8 @@ public:
 
 		swap(new_keys, old_keys);
 
+		_finish_class_update(p, updates);
+
 		return *this;
 	}
 
@@ -544,6 +662,8 @@ public:
 		const Sequence& seq=Sequence()
 	)
 	{
+		auto updates = _begin_class_update(t);
+
 		_entity_info& fei = f->second;
 		_entity_info& tei = t->second;
 
@@ -560,6 +680,8 @@ public:
 			idx_map
 		};
 		mp::for_each<Sequence>(copier);
+
+		_finish_class_update(t, updates);
 
 		return *this;
 	}
@@ -957,9 +1079,21 @@ public:
 
 		/// Returns the Component of the entity at front of the range
 		template <typename Component>
-		Component& front_component(void) const
+		shared_component<Component> front_component(void) const
 		{
-			return _m.template access<Component>(front());
+			return _m.template ref<Component>(front());
+		}
+
+		template <typename Component>
+		const Component& read(void) const
+		{
+			return front_component<Component>().read();
+		}
+
+		template <typename Component>
+		Component& write(void) const
+		{
+			return front_component<Component>().write();
 		}
 
 		/// Moves the front of the range one element ahead
