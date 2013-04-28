@@ -10,7 +10,7 @@
 #ifndef EXCES_GROUP_1212101431_HPP
 #define EXCES_GROUP_1212101431_HPP
 
-#include <exces/global_list.hpp>
+#include <exces/aux_/global_list.hpp>
 
 #define EXCES_GROUP_SEL_UNQ(GROUP) _group_##GROUP##_sel 
 #define EXCES_GROUP_SEL(GROUP) ::exces:: EXCES_GROUP_SEL_UNQ(GROUP)

@@ -1,5 +1,5 @@
 /**
- *  @file exces/counter.hpp
+ *  @file exces/aux_/counter.hpp
  *  @brief Helper template class for creating compile-time counters
  *
  *  Copyright 2008-2013 Matus Chochlik. Distributed under the Boost
@@ -7,10 +7,10 @@
  *  LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
  */
 
-#ifndef EXCES_COUNTER_1011291729_HPP
-#define EXCES_COUNTER_1011291729_HPP
+#ifndef EXCES_AUX_COUNTER_1011291729_HPP
+#define EXCES_AUX_COUNTER_1011291729_HPP
 
-#include <exces/metaprog.hpp>
+#include <exces/aux_/metaprog.hpp>
 
 #ifndef EXCES_COUNTER_LUID
 # ifdef __COUNTER__
