@@ -10,4 +10,11 @@ include(config/CPP11.cmake)
 
 include_directories(include)
 
+find_package(Boost)
+if(Boost_FOUND)
+	include_directories(${Boost_INCLUDE_DIRS})
+else()
+	message(FATAL_ERROR "Boost UUID is required for exces.")
+endif()
+
 add_subdirectory(example)
