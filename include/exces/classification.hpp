@@ -19,6 +19,10 @@ namespace exces {
 template <typename Group>
 class manager;
 
+/// Base interface for entity classifications
+/**
+ *  @note do not use directly, use the derived classes instead.
+ */
 template <typename Group = default_group>
 class any_classification
 {
@@ -83,6 +87,21 @@ public:
 	
 };
 
+/// A template for entity classifications
+/** A classification stores references to entities managed by a manager
+ *  and divides them into disjunct subsets by their 'class' which is a value
+ *  assigned to the entities by a 'classifier' function. There is also a second
+ *  function called 'filter' that determines which classes are stored and which
+ *  are not. If the filter returns true for a class (value) then entities being
+ *  of that class are stored in the classification, entities having classes
+ *  for which the filter returns false are ignored by the classification.
+ *
+ *  A classification allows to enumerate entities belonging to a particular
+ *  class.
+ *
+ *  @tparam Class the type that is used to classify entities.
+ *  @tparam Group the component group.
+ */
 template <typename Class, typename Group = default_group>
 class classification
  : public any_classification<Group>
@@ -228,6 +247,12 @@ private:
 
 	typedef any_classification<Group> _base;
 public:
+	/// Constructs a new instance
+	/** The @p parent_manager must not be destroyed during the whole
+	 *  lifetime of the newly constructed classification. The classifier
+	 *  is used to divide entities of the manager into classes and filter
+	 *  determines the classes that are stored by the classification.
+	 */ 
 	classification(
 		manager<Group>& parent_manager,
 		const std::function<
@@ -241,8 +266,10 @@ public:
 		this->_register();
 	}
 
+	/// Classifications are not copyable
 	classification(const classification&) = delete;
 
+	/// Classifications are movable
 	classification(classification&& tmp)
 	 : _base(static_cast<_base&&>(tmp))
 	 , _classify(std::move(_classify))
@@ -251,6 +278,10 @@ public:
 	 , _updates(std::move(_updates))
 	{ }
 
+	/// Execute a @p function on each entity in the specified entity_class.
+	/**
+	 *  @see for_each_mke
+	 */
 	void for_each(
 		Class entity_class,
 		const std::function<void(
@@ -277,6 +308,10 @@ public:
 		}
 	}
 
+	/// Execute a @p functor on each entity in the specified entity_class.
+	/**
+	 *  @see for_each
+	 */
 	template <typename Functor>
 	void for_each_mke(Class entity_class, Functor functor) const
 	{
