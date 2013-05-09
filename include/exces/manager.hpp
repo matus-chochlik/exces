@@ -237,6 +237,24 @@ private:
 		}
 	};
 
+	// helper functor that replaces a Component in the storage
+	struct _component_replacer
+	{
+		_component_storage& _storage;
+		_component_key_vector& _keys;
+
+		template <typename Component>
+		void operator()(Component& component) const
+		{
+			const std::size_t cid =
+				component_id<Component, Group>::value;
+			_keys[cid] = _storage.template replace<Component>(
+				_keys[cid],
+				std::move(component)
+			);
+		}
+	};
+
 	// helper functor that copies components between entities
 	struct _component_copier
 	{
@@ -499,17 +517,17 @@ public:
 
 	/// Adds the specified components to the specified entity
 	template <typename Sequence>
-	manager& add_seq(entity_key p, Sequence seq)
+	manager& add_seq(entity_key ek, Sequence seq)
 	{
-		auto updates = _begin_class_update(p);
+		auto updates = _begin_class_update(ek);
 
 		_component_bitset add_bits = _get_bits(seq);
 
-		_component_bitset  old_bits = p->second._component_bits;
+		_component_bitset  old_bits = ek->second._component_bits;
 
-		p->second._component_bits |= add_bits;
+		ek->second._component_bits |= add_bits;
 
-		_component_bitset& new_bits = p->second._component_bits;
+		_component_bitset& new_bits = ek->second._component_bits;
 
 		const std::size_t cc = _component_count();
 		_component_key_vector tmp_keys(cc);
@@ -517,7 +535,7 @@ public:
 		mp::for_each(seq, adder);
 		
 		_component_key_vector  new_keys(new_bits.count());
-		_component_key_vector& old_keys = p->second._component_keys;
+		_component_key_vector& old_keys = ek->second._component_keys;
 		assert(old_keys.size() == old_bits.count());
 
 		const typename _component_index_map::_index_vector
@@ -545,7 +563,7 @@ public:
 		}
 		swap(new_keys, old_keys);
 
-		_finish_class_update(p, updates);
+		_finish_class_update(ek, updates);
 
 		return *this;
 	}
@@ -573,12 +591,12 @@ public:
 
 	/// Removes the specified components from the specified entity
 	template <typename Sequence>
-	manager& remove_seq(entity_key p, const Sequence& seq = Sequence())
+	manager& remove_seq(entity_key ek, const Sequence& seq = Sequence())
 	{
-		auto updates = _begin_class_update(p);
+		auto updates = _begin_class_update(ek);
 
 		_component_bitset rem_bits = _get_bits(seq);
-		if((p->second._component_bits & rem_bits) != rem_bits)
+		if((ek->second._component_bits & rem_bits) != rem_bits)
 		{
 			throw ::std::invalid_argument(
 				"exces::entity manager: "
@@ -587,14 +605,14 @@ public:
 			);
 		}
 
-		_component_bitset  old_bits = p->second._component_bits;
+		_component_bitset  old_bits = ek->second._component_bits;
 
-		p->second._component_bits &= ~rem_bits;
+		ek->second._component_bits &= ~rem_bits;
 
-		_component_bitset& new_bits = p->second._component_bits;
+		_component_bitset& new_bits = ek->second._component_bits;
 		
 		_component_key_vector  new_keys(new_bits.count());
-		_component_key_vector& old_keys = p->second._component_keys;
+		_component_key_vector& old_keys = ek->second._component_keys;
 		assert(old_keys.size() == old_bits.count());
 
 		const typename _component_index_map::_index_vector
@@ -628,7 +646,7 @@ public:
 
 		swap(new_keys, old_keys);
 
-		_finish_class_update(p, updates);
+		_finish_class_update(ek, updates);
 
 		return *this;
 	}
@@ -653,6 +671,104 @@ public:
 	{
 		return remove_seq<mp::typelist<Components...> >(e);
 	}
+
+	/// Replaces the specified components in the specified entity
+	template <typename Sequence>
+	manager& replace_seq(entity_key ek, const Sequence& seq = Sequence())
+	{
+		auto updates = _begin_class_update(ek);
+
+		_component_bitset rep_bits = _get_bits(seq);
+		if((ek->second._component_bits & rep_bits) != rep_bits)
+		{
+			throw ::std::invalid_argument(
+				"exces::entity manager: "
+				"replacing components that "
+				"the entity does not have"
+			);
+		}
+
+		_component_bitset& new_bits = ek->second._component_bits;
+
+		_component_key_vector& new_keys = ek->second._component_keys;
+
+		const typename _component_index_map::_index_vector
+			&new_map = _component_indices.get(new_bits);
+
+		const std::size_t cc = _component_count();
+		_component_key_vector tmp_keys(cc);
+
+		for(std::size_t i=0; i!=cc; ++i)
+		{
+			if(new_bits.test(i))
+			{
+				tmp_keys[i] = new_keys[new_map[i]];
+			}
+		}
+
+		_component_replacer replacer = { _storage, tmp_keys };
+		mp::for_each<Sequence>(replacer);
+
+		for(std::size_t i=0; i!=cc; ++i)
+		{
+			if(new_bits.test(i))
+			{
+				new_keys[new_map[i]] = tmp_keys[i];
+			}
+		}
+
+
+		_finish_class_update(ek, updates);
+
+		return *this;
+	}
+
+	/// Replaces the specified components in the specified entity
+	template <typename Sequence>
+	manager& replace_seq(entity e, Sequence seq)
+	{
+		return replace_seq(get_key(e), seq);
+	}
+
+	/// Replaces the specified components in the specified entity
+	template <typename ... Components>
+	manager& replace(entity_key k, Components ... c)
+	{
+		return replace_seq(k, mp::make_tuple(c...));
+	}
+
+	/// Replaces the specified components in the specified entity
+	template <typename ... Components>
+	manager& replace(entity e, Components ... c)
+	{
+		return replace_seq(e, mp::make_tuple(c...));
+	}
+
+	template <typename Component>
+	void replace_component_at(
+		entity_key ek,
+		typename _component_storage::component_key ck,
+		Component&& component
+	)
+	{
+		const std::size_t cid = component_id<Component, Group>::value;
+		assert(ek->second._component_bits.test(cid));
+
+		_component_key_vector& new_keys = ek->second._component_keys;
+
+		const typename _component_index_map::_index_vector
+			&new_map = _component_indices.get(
+				ek->second._component_bits
+			);
+
+		assert(new_keys[new_map[cid]] == ck);
+
+		new_keys[new_map[cid]] = _storage.template replace<Component>(
+			ck,
+			std::move(component)
+		);
+	}
+
 
 	/// Copy the specified components between the specified entities
 	template <typename Sequence>
@@ -709,11 +825,11 @@ public:
 
 	/// Returns true if the specified entity has the specified Component
 	template <typename Component>
-	bool has(entity_key p)
+	bool has(entity_key ek)
 	{
 		const std::size_t cid = component_id<Component, Group>::value;
-		assert(p != _entities.end());
-		return p->second._component_bits.test(cid);
+		assert(ek != _entities.end());
+		return ek->second._component_bits.test(cid);
 	}
 
 	/// Returns true if the specified entity has the specified Component
@@ -721,18 +837,18 @@ public:
 	bool has(entity e)
 	{
 		const std::size_t cid = component_id<Component, Group>::value;
-		typename _entity_info_map::const_iterator p = _entities.find(e);
-		if(p == _entities.end()) return false;
-		return p->second._component_bits.test(cid);
+		typename _entity_info_map::const_iterator ek = _entities.find(e);
+		if(ek == _entities.end()) return false;
+		return ek->second._component_bits.test(cid);
 	}
 
 	/// Returns true if the specified entity has all the specified Components
 	template <typename Sequence>
-	bool has_all_seq(entity_key p, Sequence seq = Sequence())
+	bool has_all_seq(entity_key ek, Sequence seq = Sequence())
 	{
 		_component_bitset _req_bits = _get_bits(seq);
-		assert(p != _entities.end());
-		return ((p->second._component_bits & _req_bits) == _req_bits);
+		assert(ek != _entities.end());
+		return ((ek->second._component_bits & _req_bits) == _req_bits);
 	}
 
 	/// Returns true if the specified entity has all the specified Components
@@ -740,16 +856,16 @@ public:
 	bool has_all_seq(entity e, Sequence seq = Sequence())
 	{
 		_component_bitset _req_bits = _get_bits(seq);
-		typename _entity_info_map::const_iterator p = _entities.find(e);
-		if(p == _entities.end()) return false;
-		return ((p->second._component_bits & _req_bits) == _req_bits);
+		typename _entity_info_map::const_iterator ek = _entities.find(e);
+		if(ek == _entities.end()) return false;
+		return ((ek->second._component_bits & _req_bits) == _req_bits);
 	}
 
 	/// Returns true if the specified entity has all the specified Components
 	template <typename ... Components>
-	bool has_all(entity_key p)
+	bool has_all(entity_key ek)
 	{
-		return has_all_seq(p, mp::typelist<Components...>());
+		return has_all_seq(ek, mp::typelist<Components...>());
 	}
 
 	/// Returns true if the specified entity has all the specified Components
@@ -761,11 +877,11 @@ public:
 
 	/// Returns true if the specified entity has some of the Components
 	template <typename Sequence>
-	bool has_some_seq(entity_key p, Sequence seq = Sequence())
+	bool has_some_seq(entity_key ek, Sequence seq = Sequence())
 	{
 		_component_bitset _req_bits = _get_bits(seq);
-		assert(p != _entities.end());
-		return (p->second._component_bits & _req_bits).any();
+		assert(ek != _entities.end());
+		return (ek->second._component_bits & _req_bits).any();
 	}
 
 	/// Returns true if the specified entity has some of the Components
@@ -773,16 +889,16 @@ public:
 	bool has_some_seq(entity e, Sequence seq = Sequence())
 	{
 		_component_bitset _req_bits = _get_bits(seq);
-		typename _entity_info_map::const_iterator p = _entities.find(e);
-		if(p == _entities.end()) return false;
-		return (p->second._component_bits & _req_bits).any();
+		typename _entity_info_map::const_iterator ek = _entities.find(e);
+		if(ek == _entities.end()) return false;
+		return (ek->second._component_bits & _req_bits).any();
 	}
 
 	/// Returns true if the specified entity has some of the Components
 	template <typename ... Components>
-	bool has_some(entity_key p)
+	bool has_some(entity_key ek)
 	{
-		return has_some_seq(p, mp::typelist<Components...>());
+		return has_some_seq(ek, mp::typelist<Components...>());
 	}
 
 	/// Returns true if the specified entity has some of the Components
@@ -790,25 +906,6 @@ public:
 	bool has_some(entity e)
 	{
 		return has_some_seq(e, mp::typelist<Components...>());
-	}
-
-	/// Gets the specified component of the specified entity
-	template <typename Component>
-	Component& access(entity_key p)
-	{
-		assert(p != _entities.end());
-		return _storage.template access<Component>(
-			_get_component_key<Component>(p)
-		);
-	}
-
-	/// Gets the specified component of the specified entity
-	template <typename Component>
-	Component& access(entity e)
-	{
-		return _storage.template access<Component>(
-			_get_component_key<Component>(_find_entity(e))
-		);
 	}
 
 	/// Gets a shared reference to entity's component
@@ -819,26 +916,26 @@ public:
 	 *  if is removed from the entity.
 	 */
 	template <typename Component>
-	shared_component<Component, Group> ref(entity_key p)
+	shared_component<Component, Group> ref(entity_key ek)
 	{
 		std::size_t cid = component_id<Component, Group>::value;
 		typename _component_storage::component_key key;
-		if(p->second._component_bits.test(cid))
+		if(ek->second._component_bits.test(cid))
 		{
 
 			typename component_index<Component>::type cidx =
 				_component_indices.get(
-					p->second._component_bits
+					ek->second._component_bits
 				)[cid];
 
-			key = p->second._component_keys[cidx];
+			key = ek->second._component_keys[cidx];
 		}
 		else
 		{
 			key = _storage.null_key();
 		}
 
-		return shared_component<Component, Group>(_storage, key);
+		return shared_component<Component, Group>(*this, ek, _storage, key);
 	}
 
 	/// Gets a shared reference to entity's component
@@ -846,6 +943,18 @@ public:
 	shared_component<Component, Group> ref(entity e)
 	{
 		return ref<Component>(_find_entity(e));
+	}
+
+	template <typename Component>
+	const Component& read(entity_key ek)
+	{
+		return ref<Component>(ek).read();
+	}
+
+	template <typename Component>
+	const Component& read(entity e)
+	{
+		return read<Component>(_find_entity(e));
 	}
 
 	template <typename Visitor>
@@ -1140,6 +1249,20 @@ public:
 	}
 };
 
+namespace aux {
+
+template <typename Component, typename Group>
+inline void manager_replace_component_at(
+	manager<Group>& mngr,
+	typename manager<Group>::entity_key ek,
+	typename component_storage<Group>::component_key ck,
+	Component&& component
+)
+{
+	mngr.replace_component_at(ek, ck, std::move(component));
+}
+
+} // namespace aux
 } // namespace exces
 
 #endif //include guard

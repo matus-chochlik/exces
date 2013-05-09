@@ -84,12 +84,12 @@ public:
 	{
 		auto e = _manager.get_entity(k);
 		auto ep = _manager.ref<physical>(k);
-		float w = ep->weight;
+		float w = ep.read().weight;
 
 		auto ec = _manager.ref<container>(k);
 		if(ec)
 		{
-			float wc = ec->weight_coef;
+			float wc = ec.read().weight_coef;
 			
 			for(auto r = _manager.select_with<contained>(); !r.empty(); r.next())
 			{
@@ -109,14 +109,14 @@ public:
 	{
 		auto e = _manager.get_entity(k);
 		auto ep = _manager.ref<physical>(k);
-		float s = ep->size;
+		float s = ep.read().size;
 
 		auto ec = _manager.ref<container>(k);
 		if(ec)
 		{
-			if(ec->growable)
+			if(ec.read().growable)
 			{
-				float sc = ec->size_coef;
+				float sc = ec.read().size_coef;
 				
 				for(auto r = _manager.select_with<contained>(); !r.empty(); r.next())
 				{
@@ -151,8 +151,8 @@ public:
 
 		if(ip)
 		{
-			cc->cur_size += ip->size;
-			cc->cur_weight += ip->weight;
+			cc.write().cur_size += ip.read().size;
+			cc.write().cur_weight += ip.read().weight;
 		}
 		_manager.add(item, contained(_manager.get_entity(cont)));
 	}
@@ -171,8 +171,8 @@ public:
 
 		if(ip)
 		{
-			cc->cur_size -= ip->size;
-			cc->cur_weight -= ip->weight;
+			cc.write().cur_size -= ip.read().size;
+			cc.write().cur_weight -= ip.read().weight;
 		}
 		_manager.remove<contained>(item);
 	}

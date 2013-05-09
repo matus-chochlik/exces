@@ -12,6 +12,8 @@
 
 #include <exces/aux_/global_list.hpp>
 
+#include <type_traits>
+
 #define EXCES_GROUP_SEL_UNQ(GROUP) _group_##GROUP##_sel 
 #define EXCES_GROUP_SEL(GROUP) ::exces:: EXCES_GROUP_SEL_UNQ(GROUP)
 
@@ -30,17 +32,22 @@ typedef EXCES_GROUP_SEL(default) default_group;
 template <typename Component, typename Group>
 struct component_id;
 
-template <typename Component, typename Group = default_group>
-struct component_name;
-
 template <typename Component, typename Group>
 struct component_id<const Component, Group>
  : component_id<Component, Group>
 { };
 
+template <typename Component, typename Group = default_group>
+struct component_name;
+
+template <typename Component, typename Group = default_group>
+struct flyweight_component
+ : public std::false_type
+{ };
+
 } // namespace exces
 
-#define EXCES_REG_COMPONENT_IN_GROUP(COMPONENT, GROUP) \
+#define EXCES_REG_COMPONENT_IN_GROUP_BEGIN(COMPONENT, GROUP) \
 namespace exces { \
 template <> \
 struct component_id< COMPONENT, EXCES_GROUP_SEL(GROUP) > \
@@ -52,10 +59,28 @@ struct component_name< COMPONENT, EXCES_GROUP_SEL(GROUP) > \
 	static const char* c_str(void) { return #COMPONENT ; } \
 }; \
 EXCES_ADD_TO_GLOBAL_LIST(EXCES_GROUP_SEL(GROUP), COMPONENT) \
+
+#define EXCES_REG_COMPONENT_IN_GROUP_END(COMPONENT, GROUP) \
 }
+
+#define EXCES_REG_COMPONENT_IN_GROUP(COMPONENT, GROUP) \
+	EXCES_REG_COMPONENT_IN_GROUP_BEGIN(COMPONENT, GROUP) \
+	EXCES_REG_COMPONENT_IN_GROUP_END(COMPONENT, GROUP)
+
+#define EXCES_REG_FLYWEIGHT_COMPONENT_IN_GROUP(COMPONENT, GROUP) \
+	EXCES_REG_COMPONENT_IN_GROUP_BEGIN(COMPONENT, GROUP) \
+	template <> struct flyweight_component<\
+		COMPONENT, \
+		EXCES_GROUP_SEL(GROUP) \
+	> : public std::true_type \
+	{ }; \
+	EXCES_REG_COMPONENT_IN_GROUP_END(COMPONENT, GROUP)
 
 #define EXCES_REG_COMPONENT(COMPONENT) \
 	EXCES_REG_COMPONENT_IN_GROUP(COMPONENT, default)
+
+#define EXCES_REG_FLYWEIGHT_COMPONENT(COMPONENT) \
+	EXCES_REG_FLYWEIGHT_COMPONENT_IN_GROUP(COMPONENT, default)
 
 namespace exces {
 
