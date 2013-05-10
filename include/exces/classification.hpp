@@ -219,7 +219,7 @@ private:
 		if(u != _updates.end())
 		{
 			// and it was classified differently
-			if(u->first != new_class)
+			if(u->second->first != new_class)
 			{
 				// find its position
 				typename _entity_key_vector::iterator ep =
@@ -306,6 +306,28 @@ public:
 				++i;
 			}
 		}
+	}
+
+	/// Execute a @p functor on each entity in the specified entity_class.
+	/**
+	 *  @see for_each
+	 */
+	template <typename Functor>
+	void for_each_mk(Class entity_class, Functor functor) const
+	{
+		std::function<void(
+			manager<Group>&,
+			typename manager<Group>::entity_key,
+			entity
+		)> wf = [&functor](
+			manager<Group>& m,
+			typename manager<Group>::entity_key k,
+			entity
+		) -> void
+		{
+			functor(m, k);
+		};
+		for_each(entity_class, wf);
 	}
 
 	/// Execute a @p functor on each entity in the specified entity_class.
