@@ -38,7 +38,7 @@ EXCES_REG_COMPONENT(name)
 
 int main(void)
 {
-	std::vector<exces::entity> e(4);
+	std::vector<exces::entity<>::type> e(4);
 
 	exces::manager<> m;
 

@@ -285,13 +285,17 @@ private:
 
 	// a map that stores the information about entities
 	// ordered by the id of the entity
-	typedef std::map<entity, _entity_info> _entity_info_map;
+	typedef std::map<
+		typename entity<Group>::type,
+		_entity_info
+	> _entity_info_map;
 	typedef typename _entity_info_map::value_type _entity_info_entry;
 	_entity_info_map _entities;
 
 	// gets the information about an entity, inserts a new one
 	// if the entity is not registered yet
-	typename _entity_info_map::iterator _get_entity(entity e)
+	typename _entity_info_map::iterator
+	_get_entity(typename entity<Group>::type e)
 	{
 		typename _entity_info_map::iterator p = _entities.insert(
 			_entity_info_entry(e, _entity_info())
@@ -302,7 +306,8 @@ private:
 
 	// gets the information about an entity, throws if the entity
 	// is not registered
-	typename _entity_info_map::iterator _find_entity(entity e)
+	typename _entity_info_map::iterator
+	_find_entity(typename entity<Group>::type e)
 	{
 		typename _entity_info_map::iterator p = _entities.find(e);
 		
@@ -448,6 +453,9 @@ private:
 		}
 	}
 public:
+	/// The type of entity used by this manager
+	typedef typename entity<Group>::type entity_type;
+
 	/// Key for O(1) access to entity data
 	typedef typename _entity_info_map::iterator entity_key;
 
@@ -478,7 +486,8 @@ public:
 	 *  The returned keys are invalidated by removal of the entity
 	 *  from the manager.
 	 */
-	std::vector<entity_key> get_keys(const std::vector<entity>& es)
+	std::vector<entity_key>
+	get_keys(const std::vector<entity_type>& es)
 	{
 		return get_keys(es.begin(), es.end());
 	}
@@ -488,13 +497,13 @@ public:
 	 *  The returned keys are invalidated by removal of the entity
 	 *  from the manager.
 	 */
-	entity_key get_key(entity e)
+	entity_key get_key(entity_type e)
 	{
 		return _get_entity(e);
 	}
 
 	/// Get the entity pointed to by key
-	entity get_entity(entity_key k)
+	entity_type get_entity(entity_key k)
 	{
 		return k->first;
 	}
@@ -570,7 +579,7 @@ public:
 
 	/// Adds the specified components to the specified entity
 	template <typename Sequence>
-	manager& add_seq(entity e, Sequence seq)
+	manager& add_seq(entity_type e, Sequence seq)
 	{
 		return add_seq(get_key(e), seq);
 	}
@@ -584,7 +593,7 @@ public:
 
 	/// Adds the specified components to the specified entity
 	template <typename ... Components>
-	manager& add(entity e, Components ... c)
+	manager& add(entity_type e, Components ... c)
 	{
 		return add_seq(e, mp::make_tuple(c...));
 	}
@@ -653,7 +662,7 @@ public:
 
 	/// Removes the specified components from the specified entity
 	template <typename Sequence>
-	manager& remove_seq(entity e, const Sequence& seq = Sequence())
+	manager& remove_seq(entity_type e, const Sequence& seq = Sequence())
 	{
 		return remove_seq(get_key(e), seq);
 	}
@@ -667,7 +676,7 @@ public:
 
 	/// Removes the specified components from the specified entity
 	template <typename ... Components>
-	manager& remove(entity e)
+	manager& remove(entity_type e)
 	{
 		return remove_seq<mp::typelist<Components...> >(e);
 	}
@@ -725,7 +734,7 @@ public:
 
 	/// Replaces the specified components in the specified entity
 	template <typename Sequence>
-	manager& replace_seq(entity e, Sequence seq)
+	manager& replace_seq(entity_type e, Sequence seq)
 	{
 		return replace_seq(get_key(e), seq);
 	}
@@ -739,7 +748,7 @@ public:
 
 	/// Replaces the specified components in the specified entity
 	template <typename ... Components>
-	manager& replace(entity e, Components ... c)
+	manager& replace(entity_type e, Components ... c)
 	{
 		return replace_seq(e, mp::make_tuple(c...));
 	}
@@ -804,7 +813,11 @@ public:
 
 	/// Copy the specified components between the specified entities
 	template <typename Sequence>
-	manager& copy_seq(entity from, entity to, const Sequence&seq=Sequence())
+	manager& copy_seq(
+		entity_type from,
+		entity_type to,
+		const Sequence&seq=Sequence()
+	)
 	{
 		return copy_seq(_get_entity(from), _get_entity(to), seq);
 	}
@@ -818,7 +831,7 @@ public:
 
 	/// Copy the specified components between the specified entities
 	template <typename ... Components>
-	manager& copy(entity from, entity to)
+	manager& copy(entity_type from, entity_type to)
 	{
 		return copy_seq(from, to, mp::typelist<Components...>());
 	}
@@ -834,7 +847,7 @@ public:
 
 	/// Returns true if the specified entity has the specified Component
 	template <typename Component>
-	bool has(entity e)
+	bool has(entity_type e)
 	{
 		const std::size_t cid = component_id<Component, Group>::value;
 		typename _entity_info_map::const_iterator ek = _entities.find(e);
@@ -853,7 +866,7 @@ public:
 
 	/// Returns true if the specified entity has all the specified Components
 	template <typename Sequence>
-	bool has_all_seq(entity e, Sequence seq = Sequence())
+	bool has_all_seq(entity_type e, Sequence seq = Sequence())
 	{
 		_component_bitset _req_bits = _get_bits(seq);
 		typename _entity_info_map::const_iterator ek = _entities.find(e);
@@ -870,7 +883,7 @@ public:
 
 	/// Returns true if the specified entity has all the specified Components
 	template <typename ... Components>
-	bool has_all(entity e)
+	bool has_all(entity_type e)
 	{
 		return has_all_seq(e, mp::typelist<Components...>());
 	}
@@ -886,7 +899,7 @@ public:
 
 	/// Returns true if the specified entity has some of the Components
 	template <typename Sequence>
-	bool has_some_seq(entity e, Sequence seq = Sequence())
+	bool has_some_seq(entity_type e, Sequence seq = Sequence())
 	{
 		_component_bitset _req_bits = _get_bits(seq);
 		typename _entity_info_map::const_iterator ek = _entities.find(e);
@@ -903,7 +916,7 @@ public:
 
 	/// Returns true if the specified entity has some of the Components
 	template <typename ... Components>
-	bool has_some(entity e)
+	bool has_some(entity_type e)
 	{
 		return has_some_seq(e, mp::typelist<Components...>());
 	}
@@ -940,7 +953,7 @@ public:
 
 	/// Gets a shared reference to entity's component
 	template <typename Component>
-	shared_component<Component, Group> ref(entity e)
+	shared_component<Component, Group> ref(entity_type e)
 	{
 		return ref<Component>(_find_entity(e));
 	}
@@ -952,9 +965,23 @@ public:
 	}
 
 	template <typename Component>
-	const Component& read(entity e)
+	const Component& read(entity_type e)
 	{
 		return read<Component>(_find_entity(e));
+	}
+
+	template <typename Component>
+	typename shared_component<Component, Group>::component_ref
+	write(entity_key ek)
+	{
+		return ref<Component>(ek).write();
+	}
+
+	template <typename Component>
+	typename shared_component<Component, Group>::component_ref
+	write(entity_type e)
+	{
+		return write<Component>(_find_entity(e));
 	}
 
 	template <typename Visitor>
@@ -963,7 +990,7 @@ public:
 		_component_storage& _storage;
 		manager& _manager;
 		entity_key _key;
-		entity _entity;
+		entity_type _entity;
 		Visitor& _visitor;
 
 		template <typename Component>
@@ -1020,7 +1047,7 @@ public:
 		const std::function<void (
 			manager&,
 			entity_key,
-			entity,
+			entity_type,
 			Components& ...
 		)>& function
 	)
@@ -1055,17 +1082,17 @@ public:
 	manager& for_each(
 		const std::function<void (
 			manager&,
-			entity,
+			entity_type,
 			Components& ...
 		)>& function
 	)
 	{
 		std::function<
-			void (manager&, entity_key, entity, Components& ...)
+			void (manager&, entity_key, entity_type, Components& ...)
 		> wf = [&function](
 			manager& m,
 			entity_key,
-			entity e,
+			entity_type e,
 			Components& ... components
 		)
 		{
@@ -1079,11 +1106,11 @@ public:
 	manager& for_each(const std::function<void (Components& ...)>& function)
 	{
 		std::function<
-			void (manager&, entity_key, entity, Components& ...)
+			void (manager&, entity_key, entity_type, Components& ...)
 		> wf = [&function](
 			manager&,
 			entity_key,
-			entity,
+			entity_type,
 			Components& ... components
 		)
 		{
@@ -1096,11 +1123,11 @@ public:
 	manager& for_each_mkec(Func functor)
 	{
 		std::function<
-			void (manager&, entity_key, entity, Components& ...)
+			void (manager&, entity_key, entity_type, Components& ...)
 		> wf = [&functor](
 			manager& m,
 			entity_key k,
-			entity e,
+			entity_type e,
 			Components& ... components
 		)
 		{
@@ -1113,11 +1140,11 @@ public:
 	manager& for_each_mec(Func functor)
 	{
 		std::function<
-			void (manager&, entity_key, entity, Components& ...)
+			void (manager&, entity_key, entity_type, Components& ...)
 		> wf = [&functor](
 			manager& m,
 			entity_key,
-			entity e,
+			entity_type e,
 			Components& ... components
 		)
 		{
@@ -1130,11 +1157,11 @@ public:
 	manager& for_each_c(Func functor)
 	{
 		std::function<
-			void (manager&, entity_key, entity, Components& ...)
+			void (manager&, entity_key, entity_type, Components& ...)
 		> wf = [&functor](
 			manager&,
 			entity_key,
-			entity,
+			entity_type,
 			Components& ... components
 		)
 		{
@@ -1197,12 +1224,6 @@ public:
 		const Component& read(void) const
 		{
 			return front_component<Component>().read();
-		}
-
-		template <typename Component>
-		Component& write(void) const
-		{
-			return front_component<Component>().write();
 		}
 
 		/// Moves the front of the range one element ahead

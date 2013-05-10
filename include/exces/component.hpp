@@ -275,6 +275,17 @@ public:
 		);
 	}
 
+	void replace(Component&& component)
+	{
+		assert(is_valid());
+		aux::manager_replace_component_at(
+			*_pmanager,
+			_ekey,
+			_ckey,
+			std::move(component)
+		);
+	}
+
 };
 
 } // namespace exces

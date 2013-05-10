@@ -40,7 +40,7 @@ int main(void)
 	const std::size_t ns = sizeof(surnames)/sizeof(surnames[0]);
 
 	const std::size_t n = 200;
-	std::vector<exces::entity> e(n);
+	std::vector<exces::entity<>::type> e(n);
 	exces::manager<> m;
 	m.reserve<name>(n);
 	m.reserve<surname>(n);

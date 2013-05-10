@@ -287,7 +287,7 @@ public:
 		const std::function<void(
 			manager<Group>&,
 			typename manager<Group>::entity_key,
-			entity
+			typename entity<Group>::type
 		)>& function
 	) const
 	{
@@ -318,11 +318,11 @@ public:
 		std::function<void(
 			manager<Group>&,
 			typename manager<Group>::entity_key,
-			entity
+			typename entity<Group>::type
 		)> wf = [&functor](
 			manager<Group>& m,
 			typename manager<Group>::entity_key k,
-			entity
+			typename entity<Group>::type
 		) -> void
 		{
 			functor(m, k);
@@ -340,11 +340,11 @@ public:
 		std::function<void(
 			manager<Group>&,
 			typename manager<Group>::entity_key,
-			entity
+			typename entity<Group>::type
 		)> wf = [&functor](
 			manager<Group>& m,
 			typename manager<Group>::entity_key k,
-			entity e
+			typename entity<Group>::type e
 		) -> void
 		{
 			functor(m, k, e);

@@ -10,17 +10,25 @@
 #ifndef EXCES_ENTITY_1212101511_HPP
 #define EXCES_ENTITY_1212101511_HPP
 
+#include <exces/group.hpp>
+
 #include <boost/uuid/uuid.hpp>
 #include <boost/uuid/random_generator.hpp>
 
 namespace exces {
 
-struct entity
+struct uuid_entity
  : ::boost::uuids::uuid
 {
-	entity(void)
+	uuid_entity(void)
 	 : ::boost::uuids::uuid( ::boost::uuids::random_generator()())
 	{ }
+};
+
+template <typename Group = default_group>
+struct entity
+{
+	typedef uuid_entity type;
 };
 
 } // namespace exces

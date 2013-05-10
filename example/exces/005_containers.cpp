@@ -60,9 +60,9 @@ EXCES_REG_COMPONENT(physical)
 
 struct contained
 {
-	exces::entity container;
+	exces::entity<>::type container;
 
-	contained(exces::entity c)
+	contained(exces::entity<>::type c)
 	 : container(c)
 	{ }
 };
@@ -90,17 +90,19 @@ public:
 		if(ec)
 		{
 			float wc = ec.read().weight_coef;
-			
-			for(auto r = _manager.select_with<contained>(); !r.empty(); r.next())
+
+			auto r = _manager.select_with<contained>();
+			while(!r.empty())
 			{
 				if(r.front_component<contained>().read().container == e)
 					w += wc * get_weight(r.front());
+				r.next();
 			}
 		}
 		return w;
 	}
 
-	float get_weight(exces::entity e)
+	float get_weight(exces::entity<>::type e)
 	{
 		return get_weight(_manager.get_key(e));
 	}
@@ -118,10 +120,12 @@ public:
 			{
 				float sc = ec.read().size_coef;
 				
-				for(auto r = _manager.select_with<contained>(); !r.empty(); r.next())
+				auto r = _manager.select_with<contained>();
+				while(!r.empty())
 				{
 					if(r.front_component<contained>().read().container == e)
 						s += sc * get_size(r.front());
+					r.next();
 				}
 			}
 		}
@@ -157,7 +161,7 @@ public:
 		_manager.add(item, contained(_manager.get_entity(cont)));
 	}
 
-	void put_into(exces::entity cont, exces::entity item)
+	void put_into(exces::entity<>::type cont, exces::entity<>::type item)
 	{
 		put_into(_manager.get_key(cont), _manager.get_key(item));
 	}
@@ -177,7 +181,7 @@ public:
 		_manager.remove<contained>(item);
 	}
 
-	void get_from(exces::entity cont, exces::entity item)
+	void get_from(exces::entity<>::type cont, exces::entity<>::type item)
 	{
 		get_from(_manager.get_key(cont), _manager.get_key(item));
 	}
@@ -188,9 +192,17 @@ public:
 		put_into(into, item);
 	}
 
-	void move_between(exces::entity from, exces::entity into, exces::entity item)
+	void move_between(
+		exces::entity<>::type from,
+		exces::entity<>::type into,
+		exces::entity<>::type item
+	)
 	{
-		move_between(_manager.get_key(from), _manager.get_key(into), _manager.get_key(item));
+		move_between(
+			_manager.get_key(from),
+			_manager.get_key(into),
+			_manager.get_key(item)
+		);
 	}
 };
 
@@ -199,7 +211,7 @@ class listing_system
 private:
 	typedef exces::manager<> manager;
 	typedef typename manager::entity_key entity_key;
-	typedef exces::entity entity;
+	typedef exces::entity<>::type entity_type;
 
 	manager& _manager;
 	physical_system& _phy_sys;
@@ -211,7 +223,7 @@ public:
 
 	struct contained_printer
 	{
-		entity e;
+		entity_type e;
 
 		void operator()(named& n, contained& c) const
 		{
@@ -226,7 +238,7 @@ public:
 	{
 		physical_system& ps;
 
-		void operator()(manager& m, entity_key k, entity e, named& n) const
+		void operator()(manager& m, entity_key k, entity_type e, named& n) const
 		{
 			std::cout << n.name << ":";
 			if(m.has<container>(k))
@@ -267,7 +279,7 @@ int main(void)
 
 	listing_system ls(m, ps);
 	
-	entity crate, bag, anvil, dagger, ring;
+	entity<>::type crate, bag, anvil, dagger, ring;
 
 	m.add(crate, named("big_crate"), container(400.0, 1500.0, false), physical(410.0, 12.0));
 	m.add(bag, named("magic_bag"), container(10.0, 50.0, true, 0.4f, 0.1f), physical(2.0, 1.0));

@@ -40,7 +40,7 @@ int main(void)
 	const std::size_t ns = sizeof(surnames)/sizeof(surnames[0]);
 
 	const std::size_t n = 500;
-	std::vector<exces::entity> e(n);
+	std::vector<exces::entity<>::type> e(n);
 	exces::manager<> m;
 	m.reserve<name>(n);
 	m.reserve<surname>(n);
@@ -56,6 +56,7 @@ int main(void)
 
 	std::cout << "---------------------------" << std::endl;
 	std::cout << m.read<name>(e[0]) << " " << m.read<surname>(e[0]) << std::endl;
+	std::cout << m.read<name>(e[1]) << " " << m.read<surname>(e[1]) << std::endl;
 	std::cout << "---------------------------" << std::endl;
 	for(auto r=m.select_with<name, surname>(); !r.empty(); r.next())
 	{
@@ -64,9 +65,11 @@ int main(void)
 		std::cout << std::endl;
 	};
 
-	m.ref<surname>(e[0]).write().append("-Doe");
+	m.write<surname>(e[0]).append("-Doe");
+	m.ref<surname>(e[1]).replace("Roe");
 	std::cout << "---------------------------" << std::endl;
 	std::cout << m.read<name>(e[0]) << " " << m.read<surname>(e[0]) << std::endl;
+	std::cout << m.read<name>(e[1]) << " " << m.read<surname>(e[1]) << std::endl;
 	std::cout << "---------------------------" << std::endl;
 
 	for(auto r=m.select_with<name, surname>(); !r.empty(); r.next())

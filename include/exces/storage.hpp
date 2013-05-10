@@ -102,7 +102,7 @@ private:
 
 		component_key replace(component_key key, Component&& component)
 		{
-			_ents.at(key) = std::move(component);
+			_ents.at(key)._component = std::move(component);
 			return key;
 		}
 
@@ -161,7 +161,11 @@ private:
 				_index[_ents.at(k)._component] = k;
 				return k;
 			}
-			else return p->second;
+			else
+			{
+				add_ref(p->second);
+				return p->second;
+			}
 		}
 
 		component_key replace(component_key key, Component&& component)
