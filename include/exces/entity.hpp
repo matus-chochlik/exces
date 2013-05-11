@@ -25,6 +25,8 @@ struct uuid_entity
 	{ }
 };
 
+
+/// Template metafunction that returns the entity type for the specified group
 template <typename Group = default_group>
 struct entity
 {

@@ -160,6 +160,12 @@ public:
 
 } // namespace aux
 
+/// Smart wraper for an instance of a component
+/** Instantiations of this template reference a single instance of a component
+ *  of a specified entity. It allows the value to be read or chaned conveniently
+ *  and ensures that the instance of the component remains valid even if it
+ *  is removed from the entity.
+ */
 template <typename Component, typename Group = default_group>
 class shared_component
  : public aux::shared_component_base<
@@ -216,6 +222,7 @@ public:
 		_add_ref();
 	}
 
+	/// Shared components are copy-constructible
 	shared_component(const shared_component& that)
 	 : _pmanager(that._pmanager)
 	 , _ekey(that._ekey)
@@ -225,6 +232,7 @@ public:
 		_add_ref();
 	}
 
+	/// Shared components are movable
 	shared_component(shared_component&& tmp)
 	 : _pmanager(tmp._pmanager)
 	 , _ekey(tmp._ekey)
@@ -236,11 +244,13 @@ public:
 		tmp._ckey = _storage::null_key();
 	}
 
+	/// Releases a reference to the managed component instance
 	~shared_component(void)
 	{
 		_release();
 	}
 
+	// Returns true if the component has not beed moved from
 	bool is_valid(void) const
 	{
 		return _pmanager && _pstorage && (_ckey != _storage::null_key());
@@ -256,14 +266,21 @@ public:
 		return !is_valid();
 	}
 
+	/// Returns a const reference to the managed component
 	const Component& read(void) const
 	{
 		assert(is_valid());
 		return _pstorage->template access<Component>(_ckey);
 	}
 
+#if OALPLUS_DOCUMENTATION_ONLY
+	/// The type of the reference that allows to mutate the component
+	typedef Unspecified component_ref;
+#else
 	typedef typename _base::component_ref component_ref;
+#endif
 
+	/// Returns a reference that allows to change the managed component
 	component_ref write(void)
 	{
 		assert(is_valid());
@@ -275,6 +292,7 @@ public:
 		);
 	}
 
+	/// Replaces the managed component with a new value
 	void replace(Component&& component)
 	{
 		assert(is_valid());

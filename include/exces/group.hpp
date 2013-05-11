@@ -17,6 +17,11 @@
 #define EXCES_GROUP_SEL_UNQ(GROUP) _group_##GROUP##_sel 
 #define EXCES_GROUP_SEL(GROUP) ::exces:: EXCES_GROUP_SEL_UNQ(GROUP)
 
+/// Registers a new component group, the default group is always pre-registered
+/**
+ *  @see #EXCES_REG_COMPONENT_IN_GROUP
+ *  @see #EXCES_REG_FLYWEIGHT_COMPONENT_IN_GROUP
+ */
 #define EXCES_REG_GROUP(GROUP) \
 namespace exces { \
 	struct EXCES_GROUP_SEL_UNQ(GROUP) { }; \
@@ -63,10 +68,22 @@ EXCES_ADD_TO_GLOBAL_LIST(EXCES_GROUP_SEL(GROUP), COMPONENT) \
 #define EXCES_REG_COMPONENT_IN_GROUP_END(COMPONENT, GROUP) \
 }
 
+/// Registers the specified component in the specifed group
+/**
+ *  @see #EXCES_REG_GROUP
+ *  @see #EXCES_REG_FLYWEIGHT_COMPONENT_IN_GROUP
+ *  @see #EXCES_REG_FLYWEIGHT_COMPONENT
+ */
 #define EXCES_REG_COMPONENT_IN_GROUP(COMPONENT, GROUP) \
 	EXCES_REG_COMPONENT_IN_GROUP_BEGIN(COMPONENT, GROUP) \
 	EXCES_REG_COMPONENT_IN_GROUP_END(COMPONENT, GROUP)
 
+/// Registers a flyweight component in the specified group
+/**
+ *  @see #EXCES_REG_GROUP
+ *  @see #EXCES_REG_COMPONENT_IN_GROUP
+ *  @see #EXCES_REG_COMPONENT
+ */
 #define EXCES_REG_FLYWEIGHT_COMPONENT_IN_GROUP(COMPONENT, GROUP) \
 	EXCES_REG_COMPONENT_IN_GROUP_BEGIN(COMPONENT, GROUP) \
 	template <> struct flyweight_component<\
@@ -76,19 +93,33 @@ EXCES_ADD_TO_GLOBAL_LIST(EXCES_GROUP_SEL(GROUP), COMPONENT) \
 	{ }; \
 	EXCES_REG_COMPONENT_IN_GROUP_END(COMPONENT, GROUP)
 
+/// Registers the specified component in the specifed group
+/**
+ *  @see #EXCES_REG_GROUP
+ *  @see #EXCES_REG_COMPONENT_IN_GROUP
+ *  @see #EXCES_REG_FLYWEIGHT_COMPONENT
+ */
 #define EXCES_REG_COMPONENT(COMPONENT) \
 	EXCES_REG_COMPONENT_IN_GROUP(COMPONENT, default)
 
+/// Registers the specified component in the specifed group
+/**
+ *  @see #EXCES_REG_GROUP
+ *  @see #EXCES_REG_FLYWEIGHT_COMPONENT_IN_GROUP
+ *  @see #EXCES_REG_COMPONENT
+ */
 #define EXCES_REG_FLYWEIGHT_COMPONENT(COMPONENT) \
 	EXCES_REG_FLYWEIGHT_COMPONENT_IN_GROUP(COMPONENT, default)
 
 namespace exces {
 
+/// Metafunction returning the sequence of components in the specified group
 template <typename Group = default_group>
 struct components
  : EXCES_GET_GLOBAL_LIST(Group)
 { };
 
+/// Returns the group-unique index of the specified components
 template <typename Group = default_group>
 struct component_index
 {
