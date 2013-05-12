@@ -958,18 +958,21 @@ public:
 		return ref<Component>(_find_entity(e));
 	}
 
+	/// Returns a const reference to the component of the specified entity
 	template <typename Component>
 	const Component& read(entity_key ek)
 	{
 		return ref<Component>(ek).read();
 	}
 
+	/// Returns a const reference to the component of the specified entity
 	template <typename Component>
 	const Component& read(entity_type e)
 	{
 		return read<Component>(_find_entity(e));
 	}
 
+	/// Returns a reference to the component of the specified entity
 	template <typename Component>
 	typename shared_component<Component, Group>::component_ref
 	write(entity_key ek)
@@ -977,6 +980,7 @@ public:
 		return ref<Component>(ek).write();
 	}
 
+	/// Returns a reference to the component of the specified entity
 	template <typename Component>
 	typename shared_component<Component, Group>::component_ref
 	write(entity_type e)
@@ -1119,6 +1123,7 @@ public:
 		return for_each(wf);
 	}
 
+	/// Calls the specified functor on each entity having the Components
 	template <typename ... Components, typename Func>
 	manager& for_each_mkec(Func functor)
 	{
@@ -1136,6 +1141,7 @@ public:
 		return for_each(wf);
 	}
 
+	/// Calls the specified functor on each entity having the Components
 	template <typename ... Components, typename Func>
 	manager& for_each_mec(Func functor)
 	{
@@ -1153,6 +1159,7 @@ public:
 		return for_each(wf);
 	}
 
+	/// Calls the specified functor on each entity having the Components
 	template <typename ... Components, typename Func>
 	manager& for_each_c(Func functor)
 	{
