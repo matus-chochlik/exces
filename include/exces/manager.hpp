@@ -261,16 +261,17 @@ private:
 		_component_storage& _storage;
 		_component_key_vector& _src_keys;
 		_component_key_vector& _dst_keys;
-		const typename _component_index_map::_index_vector& _idx_map;
+		const typename _component_index_map::_index_vector& _src_map;
+		const typename _component_index_map::_index_vector& _dst_map;
 
 		template <typename Component>
 		void operator()(mp::identity<Component>) const
 		{
 			const std::size_t cid =
 				component_id<Component, Group>::value;
-			_dst_keys[_idx_map[cid]] =
+			_dst_keys[_dst_map[cid]] =
 				_storage.template copy<Component>(
-					_src_keys[_idx_map[cid]]
+					_src_keys[_src_map[cid]]
 				);
 		}
 	};
@@ -463,6 +464,8 @@ public:
 	/**
 	 *  The returned keys are invalidated by removal of the entity
 	 *  from the manager.
+	 *
+	 *  @see get_key
 	 */
 	template <typename Iterator>
 	std::vector<entity_key> get_keys(Iterator cur, Iterator end)
@@ -485,6 +488,8 @@ public:
 	/**
 	 *  The returned keys are invalidated by removal of the entity
 	 *  from the manager.
+	 *
+	 *  @see get_key
 	 */
 	std::vector<entity_key>
 	get_keys(const std::vector<entity_type>& es)
@@ -496,6 +501,9 @@ public:
 	/**
 	 *  The returned keys are invalidated by removal of the entity
 	 *  from the manager.
+	 *
+	 *  @see get_keys
+	 *  @see get_entity
 	 */
 	entity_key get_key(entity_type e)
 	{
@@ -503,12 +511,18 @@ public:
 	}
 
 	/// Get the entity pointed to by key
+	/**
+	 *  @see get_key
+	 */
 	entity_type get_entity(entity_key k)
 	{
 		return k->first;
 	}
 
 	/// Reserves space for n instances of Components in Seqence
+	/**
+	 *  @see reserve
+	 */
 	template <typename Sequence>
 	manager& reserve_seq(std::size_t n, Sequence seq = Sequence())
 	{
@@ -518,6 +532,9 @@ public:
 	}
 
 	/// Reserves storage space 
+	/**
+	 *  @see reserve_seq
+	 */
 	template <typename ... Components>
 	manager& reserve(std::size_t n)
 	{
@@ -525,6 +542,11 @@ public:
 	}
 
 	/// Adds the specified components to the specified entity
+	/**
+	 *  @see add
+	 *  @pre !has_some_seq<Sequence>(ek)
+	 *  @post has_all_seq<Sequence>(ek)
+	 */
 	template <typename Sequence>
 	manager& add_seq(entity_key ek, Sequence seq)
 	{
@@ -578,6 +600,11 @@ public:
 	}
 
 	/// Adds the specified components to the specified entity
+	/**
+	 *  @see add
+	 *  @pre !has_some_seq<Sequence>(e)
+	 *  @post has_all_seq<Sequence>(e)
+	 */
 	template <typename Sequence>
 	manager& add_seq(entity_type e, Sequence seq)
 	{
@@ -585,6 +612,11 @@ public:
 	}
 
 	/// Adds the specified components to the specified entity
+	/**
+	 *  @see add_seq
+	 *  @pre !has_some<Components...>(k)
+	 *  @post has_all<Components...>(k)
+	 */
 	template <typename ... Components>
 	manager& add(entity_key k, Components ... c)
 	{
@@ -592,6 +624,11 @@ public:
 	}
 
 	/// Adds the specified components to the specified entity
+	/**
+	 *  @see add_seq
+	 *  @pre !has_some<Components...>(e)
+	 *  @post has_all<Components...>(e)
+	 */
 	template <typename ... Components>
 	manager& add(entity_type e, Components ... c)
 	{
@@ -599,6 +636,11 @@ public:
 	}
 
 	/// Removes the specified components from the specified entity
+	/**
+	 *  @see remove
+	 *  @pre has_all_seq<Sequence>(ek)
+	 *  @post !has_some_seq<Sequence>(ek)
+	 */
 	template <typename Sequence>
 	manager& remove_seq(entity_key ek, const Sequence& seq = Sequence())
 	{
@@ -661,6 +703,11 @@ public:
 	}
 
 	/// Removes the specified components from the specified entity
+	/**
+	 *  @see remove
+	 *  @pre has_all_seq<Sequence>(e)
+	 *  @post !has_some_seq<Sequence>(e)
+	 */
 	template <typename Sequence>
 	manager& remove_seq(entity_type e, const Sequence& seq = Sequence())
 	{
@@ -668,6 +715,11 @@ public:
 	}
 
 	/// Removes the specified components from the specified entity
+	/**
+	 *  @see remove_seq
+	 *  @pre has_all<Components...>(k)
+	 *  @post !has_some<Components...>(k)
+	 */
 	template <typename ... Components>
 	manager& remove(entity_key k)
 	{
@@ -675,6 +727,11 @@ public:
 	}
 
 	/// Removes the specified components from the specified entity
+	/**
+	 *  @see remove_seq
+	 *  @pre has_all<Components...>(e)
+	 *  @post !has_some<Components...>(e)
+	 */
 	template <typename ... Components>
 	manager& remove(entity_type e)
 	{
@@ -682,6 +739,11 @@ public:
 	}
 
 	/// Replaces the specified components in the specified entity
+	/**
+	 *  @see replace
+	 *  @pre has_all_seq<Sequence>(ek)
+	 *  @post has_all_seq<Sequence>(ek)
+	 */
 	template <typename Sequence>
 	manager& replace_seq(entity_key ek, const Sequence& seq = Sequence())
 	{
@@ -733,6 +795,11 @@ public:
 	}
 
 	/// Replaces the specified components in the specified entity
+	/**
+	 *  @see replace
+	 *  @pre has_all_seq<Sequence>(e)
+	 *  @post has_all_seq<Sequence>(e)
+	 */
 	template <typename Sequence>
 	manager& replace_seq(entity_type e, Sequence seq)
 	{
@@ -740,6 +807,11 @@ public:
 	}
 
 	/// Replaces the specified components in the specified entity
+	/**
+	 *  @see replace_seq
+	 *  @pre has_all<Components...>(k)
+	 *  @post has_all<Components...>(k)
+	 */
 	template <typename ... Components>
 	manager& replace(entity_key k, Components ... c)
 	{
@@ -747,6 +819,11 @@ public:
 	}
 
 	/// Replaces the specified components in the specified entity
+	/**
+	 *  @see replace_seq
+	 *  @pre has_all<Components...>(e)
+	 *  @post has_all<Components...>(e)
+	 */
 	template <typename ... Components>
 	manager& replace(entity_type e, Components ... c)
 	{
@@ -780,6 +857,13 @@ public:
 
 
 	/// Copy the specified components between the specified entities
+	/**
+	 *  @see copy
+	 *  @pre has_all_seq<Sequence>(f)
+	 *  @pre !has_some_seq<Sequence>(t)
+	 *  @post has_all_seq<Sequence>(f)
+	 *  @post has_all_seq<Sequence>(t)
+	 */
 	template <typename Sequence>
 	manager& copy_seq(
 		entity_key f,
@@ -792,17 +876,22 @@ public:
 		_entity_info& fei = f->second;
 		_entity_info& tei = t->second;
 
-		tei._component_bits = fei._component_bits;
-		tei._component_keys.resize(fei._component_keys.size());
+		_component_bitset cpy_bits = _get_bits(seq);
 
-		const typename _component_index_map::_index_vector &idx_map =
+		tei._component_bits |= cpy_bits;
+		tei._component_keys.resize(tei._component_bits.count());
+
+		const typename _component_index_map::_index_vector &src_map =
 			_component_indices.get(fei._component_bits);
+		const typename _component_index_map::_index_vector &dst_map =
+			_component_indices.get(tei._component_bits);
 
 		_component_copier copier = {
 			_storage,
 			fei._component_keys,
 			tei._component_keys,
-			idx_map
+			src_map,
+			dst_map
 		};
 		mp::for_each<Sequence>(copier);
 
@@ -812,6 +901,13 @@ public:
 	}
 
 	/// Copy the specified components between the specified entities
+	/**
+	 *  @see copy
+	 *  @pre has_all_seq<Sequence>(from)
+	 *  @pre !has_some_seq<Sequence>(to)
+	 *  @post has_all_seq<Sequence>(from)
+	 *  @post has_all_seq<Sequence>(to)
+	 */
 	template <typename Sequence>
 	manager& copy_seq(
 		entity_type from,
@@ -823,6 +919,13 @@ public:
 	}
 
 	/// Copy the specified components between the specified entities
+	/**
+	 *  @see copy_seq
+	 *  @pre has_all<Components...>(f)
+	 *  @pre !has_some<Components...>(t)
+	 *  @post has_all<Components...>(f)
+	 *  @post has_all<Components...>(t)
+	 */
 	template <typename ... Components>
 	manager& copy(entity_key f, entity_key t)
 	{
@@ -830,6 +933,13 @@ public:
 	}
 
 	/// Copy the specified components between the specified entities
+	/**
+	 *  @see copy_seq
+	 *  @pre has_all<Components...>(from)
+	 *  @pre !has_some<Components...>(to)
+	 *  @post has_all<Components...>(from)
+	 *  @post has_all<Components...>(to)
+	 */
 	template <typename ... Components>
 	manager& copy(entity_type from, entity_type to)
 	{
@@ -927,6 +1037,8 @@ public:
 	 *  while any copies of the reference are still valid. Then the
 	 *  instance of the referenced component remains valid even if
 	 *  if is removed from the entity.
+	 *
+	 *  @pre has<Component>(ek)
 	 */
 	template <typename Component>
 	shared_component<Component, Group> ref(entity_key ek)
@@ -952,6 +1064,14 @@ public:
 	}
 
 	/// Gets a shared reference to entity's component
+	/**
+	 *  The manager that created this reference must not be destroyed
+	 *  while any copies of the reference are still valid. Then the
+	 *  instance of the referenced component remains valid even if
+	 *  if is removed from the entity.
+	 *
+	 *  @pre has<Component>(e)
+	 */
 	template <typename Component>
 	shared_component<Component, Group> ref(entity_type e)
 	{
@@ -959,6 +1079,9 @@ public:
 	}
 
 	/// Returns a const reference to the component of the specified entity
+	/**
+	 *  @pre has<Component>(ek)
+	 */
 	template <typename Component>
 	const Component& read(entity_key ek)
 	{
@@ -966,6 +1089,9 @@ public:
 	}
 
 	/// Returns a const reference to the component of the specified entity
+	/**
+	 *  @pre has<Component>(e)
+	 */
 	template <typename Component>
 	const Component& read(entity_type e)
 	{
@@ -973,6 +1099,9 @@ public:
 	}
 
 	/// Returns a reference to the component of the specified entity
+	/**
+	 *  @pre has<Component>(ek)
+	 */
 	template <typename Component>
 	typename shared_component<Component, Group>::component_ref
 	write(entity_key ek)
@@ -981,6 +1110,9 @@ public:
 	}
 
 	/// Returns a reference to the component of the specified entity
+	/**
+	 *  @pre has<Component>(e)
+	 */
 	template <typename Component>
 	typename shared_component<Component, Group>::component_ref
 	write(entity_type e)
