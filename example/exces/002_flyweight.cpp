@@ -1,5 +1,5 @@
 /**
- *  @example excess/002_flyweight.cpp
+ *  @example exces/002_flyweight.cpp
  *  @brief Flyweight components
  *
  *  Copyright 2012-2013 Matus Chochlik. Distributed under the Boost

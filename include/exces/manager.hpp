@@ -544,8 +544,8 @@ public:
 	/// Adds the specified components to the specified entity
 	/**
 	 *  @see add
-	 *  @pre !has_some_seq<Sequence>(ek)
-	 *  @post has_all_seq<Sequence>(ek)
+	 *  @pre !has_some_seq< Sequence >(ek)
+	 *  @post has_all_seq< Sequence >(ek)
 	 */
 	template <typename Sequence>
 	manager& add_seq(entity_key ek, Sequence seq)
@@ -602,8 +602,8 @@ public:
 	/// Adds the specified components to the specified entity
 	/**
 	 *  @see add
-	 *  @pre !has_some_seq<Sequence>(e)
-	 *  @post has_all_seq<Sequence>(e)
+	 *  @pre !has_some_seq< Sequence >(e)
+	 *  @post has_all_seq< Sequence >(e)
 	 */
 	template <typename Sequence>
 	manager& add_seq(entity_type e, Sequence seq)
@@ -638,8 +638,8 @@ public:
 	/// Removes the specified components from the specified entity
 	/**
 	 *  @see remove
-	 *  @pre has_all_seq<Sequence>(ek)
-	 *  @post !has_some_seq<Sequence>(ek)
+	 *  @pre has_all_seq< Sequence >(ek)
+	 *  @post !has_some_seq< Sequence >(ek)
 	 */
 	template <typename Sequence>
 	manager& remove_seq(entity_key ek, const Sequence& seq = Sequence())
@@ -705,8 +705,8 @@ public:
 	/// Removes the specified components from the specified entity
 	/**
 	 *  @see remove
-	 *  @pre has_all_seq<Sequence>(e)
-	 *  @post !has_some_seq<Sequence>(e)
+	 *  @pre has_all_seq< Sequence >(e)
+	 *  @post !has_some_seq< Sequence >(e)
 	 */
 	template <typename Sequence>
 	manager& remove_seq(entity_type e, const Sequence& seq = Sequence())
@@ -741,8 +741,8 @@ public:
 	/// Replaces the specified components in the specified entity
 	/**
 	 *  @see replace
-	 *  @pre has_all_seq<Sequence>(ek)
-	 *  @post has_all_seq<Sequence>(ek)
+	 *  @pre has_all_seq< Sequence >(ek)
+	 *  @post has_all_seq< Sequence >(ek)
 	 */
 	template <typename Sequence>
 	manager& replace_seq(entity_key ek, const Sequence& seq = Sequence())
@@ -797,8 +797,8 @@ public:
 	/// Replaces the specified components in the specified entity
 	/**
 	 *  @see replace
-	 *  @pre has_all_seq<Sequence>(e)
-	 *  @post has_all_seq<Sequence>(e)
+	 *  @pre has_all_seq< Sequence >(e)
+	 *  @post has_all_seq< Sequence >(e)
 	 */
 	template <typename Sequence>
 	manager& replace_seq(entity_type e, Sequence seq)
@@ -859,10 +859,10 @@ public:
 	/// Copy the specified components between the specified entities
 	/**
 	 *  @see copy
-	 *  @pre has_all_seq<Sequence>(f)
-	 *  @pre !has_some_seq<Sequence>(t)
-	 *  @post has_all_seq<Sequence>(f)
-	 *  @post has_all_seq<Sequence>(t)
+	 *  @pre has_all_seq< Sequence >(f)
+	 *  @pre !has_some_seq< Sequence >(t)
+	 *  @post has_all_seq< Sequence >(f)
+	 *  @post has_all_seq< Sequence >(t)
 	 */
 	template <typename Sequence>
 	manager& copy_seq(
@@ -903,10 +903,10 @@ public:
 	/// Copy the specified components between the specified entities
 	/**
 	 *  @see copy
-	 *  @pre has_all_seq<Sequence>(from)
-	 *  @pre !has_some_seq<Sequence>(to)
-	 *  @post has_all_seq<Sequence>(from)
-	 *  @post has_all_seq<Sequence>(to)
+	 *  @pre has_all_seq< Sequence >(from)
+	 *  @pre !has_some_seq< Sequence >(to)
+	 *  @post has_all_seq< Sequence >(from)
+	 *  @post has_all_seq< Sequence >(to)
 	 */
 	template <typename Sequence>
 	manager& copy_seq(

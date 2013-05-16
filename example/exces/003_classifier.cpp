@@ -1,5 +1,5 @@
 /**
- *  @example excess/003_classifier.cpp
+ *  @example exces/003_classifier.cpp
  *  @brief Simple example of classifier usage.
  *
  *  Copyright 2012-2013 Matus Chochlik. Distributed under the Boost

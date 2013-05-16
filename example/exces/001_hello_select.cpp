@@ -1,5 +1,5 @@
 /**
- *  @example excess/001_hello_select.cpp
+ *  @example exces/001_hello_select.cpp
  *  @brief Introductory example showing the basic usage of exces.
  *
  *  Copyright 2012-2013 Matus Chochlik. Distributed under the Boost

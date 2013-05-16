@@ -1,5 +1,5 @@
 /**
- *  @example excess/005_containers.cpp
+ *  @example exces/005_containers.cpp
  *  @brief Introductory example showing the basic usage of exces.
  *
  *  Copyright 2012-2013 Matus Chochlik. Distributed under the Boost
