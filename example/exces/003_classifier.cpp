@@ -56,12 +56,14 @@ int main(void)
 
 	exces::classification<std::string> named(
 		m,
+		[](exces::manager<>& m, exces::manager<>::entity_key k) -> bool
+		{
+			return m.has<name>(k);
+		},
 		[](exces::manager<>& m, exces::manager<>::entity_key k) -> std::string
 		{
-			if(m.has<name>(k)) return m.read<name>(k);
-			else return std::string();
-		},
-		[](const std::string& str) -> bool { return !str.empty(); }
+			return m.read<name>(k);
+		}
 	);
 
 	for(std::size_t i=0; i!=nn; ++i)

@@ -44,7 +44,8 @@ private:
 protected:
 	update_key _next_update_key(void)
 	{
-		return ++_cur_uk;
+		if(_cur_uk == 0) ++_cur_uk;
+		return _cur_uk++;
 	}
 
 	manager<Group>& _manager(void) const
@@ -90,11 +91,15 @@ public:
 /// A template for entity classifications
 /** A classification stores references to entities managed by a manager
  *  and divides them into disjunct subsets by their 'class' which is a value
- *  assigned to the entities by a 'classifier' function. There is also a second
- *  function called 'filter' that determines which classes are stored and which
- *  are not. If the filter returns true for a class (value) then entities being
- *  of that class are stored in the classification, entities having classes
- *  for which the filter returns false are ignored by the classification.
+ *  assigned to the entities by a 'classifier' function. The second function
+ *  called 'class filter' determines which classes are stored and which are not. 
+ *  There is also a third function called the entity filter that determines
+ *  if an entity should be even considered for classification.
+ *  If the entity filter is present and returns true then the entity is
+ *  classified. Then if the class filter returns true for a class (value)
+ *  then entities being of that class are stored in the classification,
+ *  entities having classes for which the class filter returns false are
+ *  not stored by the classification.
  *
  *  A classification allows to enumerate entities belonging to a particular
  *  class.
@@ -108,10 +113,14 @@ class classification
 {
 private:
 	std::function<
+		bool (manager<Group>&, typename manager<Group>::entity_key)
+	> _filter_entity;
+
+	std::function<
 		Class (manager<Group>&, typename manager<Group>::entity_key)
 	> _classify;
 
-	std::function<bool (Class)> _filter;
+	std::function<bool (Class)> _filter_class;
 
 	typedef std::vector<typename manager<Group>::entity_key>
 		_entity_key_vector;
@@ -154,10 +163,13 @@ private:
 
 	void insert(entity_key key)
 	{
-		Class entity_class = _classify(this->_manager(), key);
-		if(_filter(entity_class))
+		if(!_filter_entity || _filter_entity(this->_manager(), key))
 		{
-			insert(key, entity_class);
+			Class entity_class = _classify(this->_manager(), key);
+			if(!_filter_class || _filter_class(entity_class))
+			{
+				insert(key, entity_class);
+			}
 		}
 	}
 
@@ -183,27 +195,33 @@ private:
 
 	void remove(entity_key key)
 	{
-		Class entity_class = _classify(this->_manager(), key);
-		if(_filter(entity_class))
+		if(!_filter_entity || _filter_entity(this->_manager(), key))
 		{
-			remove(key, entity_class);
+			Class entity_class = _classify(this->_manager(), key);
+			if(!_filter_class || _filter_class(entity_class))
+			{
+				remove(key, entity_class);
+			}
 		}
 	}
 
 	update_key begin_update(entity_key key)
 	{
-		Class old_class = _classify(this->_manager(), key);
-
 		update_key result = 0;
-		if(_filter(old_class))
+		if(!_filter_entity || _filter_entity(this->_manager(), key))
 		{
-			typename _class_map::iterator p =
-				_classes.find(old_class);
+			Class old_class = _classify(this->_manager(), key);
 
-			if(p != _classes.end())
+			if(!_filter_class || _filter_class(old_class))
 			{
-				result = this->_next_update_key();
-				_updates[result] = p;
+				typename _class_map::iterator p =
+					_classes.find(old_class);
+
+				if(p != _classes.end())
+				{
+					result = this->_next_update_key();
+					_updates[result] = p;
+				}
 			}
 		}
 		return result;
@@ -211,15 +229,45 @@ private:
 
 	void finish_update(entity_key ekey, update_key ukey)
 	{
-		Class new_class = _classify(this->_manager(), ekey);
-
 		typename _update_map::iterator u = _updates.find(ukey);
 
-		// if the entity was previously classified
-		if(u != _updates.end())
+		if(!_filter_entity || _filter_entity(this->_manager(), ekey))
 		{
-			// and it was classified differently
-			if(u->second->first != new_class)
+			Class new_class = _classify(this->_manager(), ekey);
+
+			// if the entity was previously classified
+			if(u != _updates.end())
+			{
+				// and it was classified differently
+				if(u->second->first != new_class)
+				{
+					// find its position
+					typename _entity_key_vector::iterator ep =
+						std::find(
+							u->second->second.begin(),
+							u->second->second.end(),
+							ekey
+						);
+					assert(ep != u->second->second.end());
+					// erase it from the vector
+					// in the old class
+					u->second->second.erase(ep);
+				}
+				// if its previous class was the same
+				// no need to reclassify
+				else return;
+			}
+			if(!_filter_class || _filter_class(new_class))
+			{
+				// insert it into the vector
+				// of the new class
+				insert(ekey, new_class);
+			}
+		}
+		else
+		{
+			// if the entity was previously classified
+			if(u != _updates.end())
 			{
 				// find its position
 				typename _entity_key_vector::iterator ep =
@@ -233,20 +281,65 @@ private:
 				// in the old class
 				u->second->second.erase(ep);
 			}
-			// if its previous class was the same
-			// no need to reclassify
-			else return;
-		}
-		if(_filter(new_class))
-		{
-			// insert it into the vector
-			// of the new class
-			insert(ekey, new_class);
 		}
 	}
 
 	typedef any_classification<Group> _base;
+
+	template <typename Component>
+	static bool _has_component(
+		manager<Group>& mgr,
+		typename manager<Group>::entity_key ekey
+	)
+	{
+		return mgr.template has<Component>(ekey);
+	}
+
+	template <typename Component, typename MemVarType>
+	struct _get_component_mem_var
+	{
+		MemVarType Component::* _mem_var_ptr;
+
+		_get_component_mem_var(
+			MemVarType Component::* mem_var_ptr
+		): _mem_var_ptr(mem_var_ptr)
+		{ }
+
+		Class operator ()(
+			manager<Group>& mgr,
+			typename manager<Group>::entity_key ekey
+		)
+		{
+			assert(mgr.template has<Component>(ekey));
+			return Class(
+				mgr.template read<Component>(ekey).*_mem_var_ptr
+			);
+		}
+	};
+	
 public:
+	/// Constructs a new instance
+	/** The @p parent_manager must not be destroyed during the whole
+	 *  lifetime of the newly constructed classification. The classifier
+	 *  is used to divide entities of the manager into classes there is
+	 *  no class filter so all classes are stored.
+	 */ 
+	classification(
+		manager<Group>& parent_manager,
+		const std::function<
+			bool (manager<Group>&, entity_key)
+		>& entity_filter,
+		const std::function<
+			Class (manager<Group>&, entity_key)
+		>& classifier
+	): _base(parent_manager)
+	 , _filter_entity(entity_filter)
+	 , _classify(classifier)
+	 , _filter_class()
+	{
+		this->_register();
+	}
+
 	/// Constructs a new instance
 	/** The @p parent_manager must not be destroyed during the whole
 	 *  lifetime of the newly constructed classification. The classifier
@@ -256,12 +349,28 @@ public:
 	classification(
 		manager<Group>& parent_manager,
 		const std::function<
+			bool (manager<Group>&, entity_key)
+		>& entity_filter,
+		const std::function<
 			Class (manager<Group>&, entity_key)
 		>& classifier,
-		const std::function<bool (Class)>& filter
+		const std::function<bool (Class)>& class_filter
 	): _base(parent_manager)
+	 , _filter_entity(entity_filter)
 	 , _classify(classifier)
-	 , _filter(filter)
+	 , _filter_class(class_filter)
+	{
+		this->_register();
+	}
+
+	template <typename Component, typename MemVarType>
+	classification(
+		manager<Group>& parent_manager,
+		MemVarType Component::* mem_var_ptr
+	): _base(parent_manager)
+	 , _filter_entity(&_has_component<Component>)
+	 , _classify(_get_component_mem_var<Component, MemVarType>(mem_var_ptr))
+	 , _filter_class()
 	{
 		this->_register();
 	}
@@ -272,11 +381,18 @@ public:
 	/// Classifications are movable
 	classification(classification&& tmp)
 	 : _base(static_cast<_base&&>(tmp))
-	 , _classify(std::move(_classify))
-	 , _filter(std::move(_filter))
-	 , _classes(std::move(_classes))
-	 , _updates(std::move(_updates))
+	 , _filter_entity(std::move(tmp._filter_entity))
+	 , _classify(std::move(tmp._classify))
+	 , _filter_class(std::move(tmp._filter_class))
+	 , _classes(std::move(tmp._classes))
+	 , _updates(std::move(tmp._updates))
 	{ }
+
+	/// Returns the number of different classes
+	std::size_t class_count(void) const
+	{
+		return _classes.size();
+	}
 
 	/// Execute a @p function on each entity in the specified entity_class.
 	/**
