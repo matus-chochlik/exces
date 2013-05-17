@@ -635,6 +635,32 @@ public:
 		return add_seq(e, mp::make_tuple(c...));
 	}
 
+	/// Creates a new entity and adds the specified components
+	/**
+	 *  @see add_seq
+	 *  @see create
+	 *  @post has_all_seq< Sequence >(result)
+	 */
+	template <typename Sequence>
+	entity_type create_seq(Sequence seq)
+	{
+		entity_type result;
+		add_seq(result, seq);
+		return result;
+	}
+
+	/// Creates a new entity and adds the specified components
+	/**
+	 *  @see add
+	 *  @see create_seq
+	 *  @post has_all<Components...>(result)
+	 */
+	template <typename ... Components>
+	entity_type create(Components ... c)
+	{
+		return create_seq(mp::make_tuple(c...));
+	}
+
 	/// Removes the specified components from the specified entity
 	/**
 	 *  @see remove
