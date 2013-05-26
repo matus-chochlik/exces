@@ -6,6 +6,8 @@ cmake_minimum_required(VERSION 2.8)
 
 project(exces)
 
+option(EXCES_WITH_TESTS "Configure the testsuire" Off)
+
 include(config/CPP11.cmake)
 
 include_directories(include)
@@ -19,3 +21,8 @@ endif()
 
 add_subdirectory(example)
 add_subdirectory(doc)
+
+if(EXCES_WITH_TESTS)
+	add_subdirectory("test")
+endif()
+
