@@ -14,3 +14,4 @@ add_test(
 )
 
 exces_exec_test(entity)
+exces_exec_test(group)
