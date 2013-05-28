@@ -13,4 +13,6 @@ add_test(
 	--target exces-examples
 )
 
+exces_exec_test(metaprog)
 exces_exec_test(entity)
+exces_exec_test(group)

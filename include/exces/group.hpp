@@ -34,7 +34,7 @@ namespace exces {
 
 typedef EXCES_GROUP_SEL(default) default_group;
 
-template <typename Component, typename Group>
+template <typename Component, typename Group = default_group>
 struct component_id;
 
 template <typename Component, typename Group>
@@ -119,7 +119,7 @@ struct components
  : EXCES_GET_GLOBAL_LIST(Group)
 { };
 
-/// Returns the group-unique index of the specified components
+/// Returns the type for the component index value for the specified group
 template <typename Group = default_group>
 struct component_index
 {
