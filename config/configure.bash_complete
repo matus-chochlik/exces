@@ -1,0 +1,112 @@
+#  Copyright 2012-2013 Matus Chochlik.
+#  Distributed under the Boost Software License, Version 1.0.
+#  (See accompanying file LICENSE_1_0.txt or copy at
+#  http://www.boost.org/LICENSE_1_0.txt)
+#
+#  Automatically generated file. Do NOT modify manually,
+#  edit configure.py instead
+
+function _configure_exces()
+{
+	COMPREPLY=()
+	local curr="${COMP_WORDS[COMP_CWORD]}"
+	local prev="${COMP_WORDS[COMP_CWORD-1]}"
+
+	case "${prev}" in
+		-h|--help)
+			return 0;;
+		--prefix|--build-dir|--include-dir|-I|--library-dir|-L)
+			COMPREPLY=($(compgen -f "${curr}"))
+			return 0;;
+		--build-examples)
+			COMPREPLY=($(compgen -W "True False" -- "${curr}"))
+			return 0;;
+		--build-docs)
+			COMPREPLY=($(compgen -W "True False" -- "${curr}"))
+			return 0;;
+		*)
+	esac
+
+	local only_once_opts=" \
+		-h --help \
+		--generate-bash-complete \
+		--prefix \
+		--build-dir \
+		--use-cxxflags \
+		--use-ldflags \
+		--build-examples \
+		--no-examples \
+		--build-docs \
+		--no-docs \
+		--from-scratch \
+		--quiet \
+		--quick \
+		--build \
+		--with-tests \
+		--cmake \
+	"
+
+	local muog_0=" \
+		--build-examples \
+		--no-examples \
+	"
+
+	local muog_1=" \
+		--build-docs \
+		--no-docs \
+	"
+
+	local repeated_opts=" \
+		--include-dir -I \
+		--library-dir -L \
+	"
+
+	local opts="${repeated_opts}"
+
+	for opt in ${only_once_opts}
+	do
+		local opt_used=false
+		for pre in ${COMP_WORDS[@]}
+		do
+			if [ "${opt}" == "${pre}" ]
+			then opt_used=true && break
+			fi
+		done
+		if [ "${opt_used}" == "false" ]
+		then
+			for muog in "${muog_0}" "${muog_1}"
+			do
+				local is_muo=false
+				for muo in ${muog}
+				do
+					if [ "${opt}" == "${muo}" ]
+					then is_muo=true && break
+					fi
+				done
+				if [ "${is_muo}" == "true" ]
+				then
+					for pre in ${COMP_WORDS[@]}
+					do
+						for muo in ${muog}
+						do
+							if [ "${pre}" == "${muo}" ]
+							then opt_used=true && break
+							fi
+						done
+					done
+				fi
+			done
+
+			if [ "${opt_used}" == "false" ]
+			then opts="${opts} ${opt}"
+			fi
+		fi
+	done
+
+	if [ ${COMP_CWORD} -le 1 ]
+	then opts="--help ${opts}"
+	fi
+
+	COMPREPLY=($(compgen -W "${opts}" -- "${curr}"))
+}
+complete -F _configure_exces ./configure-exces
