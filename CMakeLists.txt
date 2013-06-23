@@ -6,7 +6,7 @@ cmake_minimum_required(VERSION 2.8)
 
 project(exces)
 
-option(EXCES_WITH_TESTS "Configure the testsuire" Off)
+option(EXCES_WITH_TESTS "Configure the testsuite" Off)
 
 include(config/CPP11.cmake)
 
