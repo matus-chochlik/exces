@@ -250,17 +250,19 @@ public:
 		_release();
 	}
 
-	// Returns true if the component has not beed moved from
+	/// Returns true if the component has not been moved from
 	bool is_valid(void) const
 	{
 		return _pmanager && _pstorage && (_ckey != _storage::null_key());
 	}
 
+	/// Returns true if the component has not been moved from
 	operator bool (void) const
 	{
 		return is_valid();
 	}
 
+	/// Returns true if the component has been moved from
 	bool operator ! (void) const
 	{
 		return !is_valid();
