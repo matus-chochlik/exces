@@ -6,7 +6,7 @@
  *  Software License, Version 1.0. (See accompanying file
  *  LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
  */
-#include <exces/exces.hpp>
+#include <exces/simple.hpp>
 
 #include <iostream>
 #include <vector>
@@ -40,8 +40,8 @@ int main(void)
 	const std::size_t ns = sizeof(surnames)/sizeof(surnames[0]);
 
 	const std::size_t n = 500;
-	std::vector<exces::entity<>::type> e(n);
-	exces::manager<> m;
+	std::vector<excess::entity> e(n);
+	excess::manager m;
 	m.reserve<name>(n);
 	m.reserve<surname>(n);
 

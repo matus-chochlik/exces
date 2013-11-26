@@ -6,7 +6,7 @@
  *  Software License, Version 1.0. (See accompanying file
  *  LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
  */
-#include <exces/exces.hpp>
+#include <exces/simple.hpp>
 
 #include <iostream>
 
@@ -60,9 +60,9 @@ EXCES_REG_COMPONENT(physical)
 
 struct contained
 {
-	exces::entity<>::type container;
+	excess::entity container;
 
-	contained(exces::entity<>::type c)
+	contained(excess::entity c)
 	 : container(c)
 	{ }
 };
@@ -102,7 +102,7 @@ public:
 		return w;
 	}
 
-	float get_weight(exces::entity<>::type e)
+	float get_weight(excess::entity e)
 	{
 		return get_weight(_manager.get_key(e));
 	}
@@ -161,7 +161,7 @@ public:
 		_manager.add(item, contained(_manager.get_entity(cont)));
 	}
 
-	void put_into(exces::entity<>::type cont, exces::entity<>::type item)
+	void put_into(excess::entity cont, excess::entity item)
 	{
 		put_into(_manager.get_key(cont), _manager.get_key(item));
 	}
@@ -181,7 +181,7 @@ public:
 		_manager.remove<contained>(item);
 	}
 
-	void get_from(exces::entity<>::type cont, exces::entity<>::type item)
+	void get_from(excess::entity cont, excess::entity item)
 	{
 		get_from(_manager.get_key(cont), _manager.get_key(item));
 	}
@@ -193,9 +193,9 @@ public:
 	}
 
 	void move_between(
-		exces::entity<>::type from,
-		exces::entity<>::type into,
-		exces::entity<>::type item
+		excess::entity from,
+		excess::entity into,
+		excess::entity item
 	)
 	{
 		move_between(
@@ -209,9 +209,9 @@ public:
 class listing_system
 {
 private:
-	typedef exces::manager<> manager;
+	typedef excess::manager manager;
 	typedef typename manager::entity_key entity_key;
-	typedef exces::entity<>::type entity_type;
+	typedef excess::entity entity_type;
 
 	manager& _manager;
 	physical_system& _phy_sys;

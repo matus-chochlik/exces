@@ -6,7 +6,7 @@
  *  Software License, Version 1.0. (See accompanying file
  *  LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
  */
-#include <exces/exces.hpp>
+#include <exces/simple.hpp>
 
 #include <iostream>
 #include <vector>
@@ -38,9 +38,11 @@ EXCES_REG_COMPONENT(name)
 
 int main(void)
 {
-	std::vector<exces::entity<>::type> e(4);
+	using exces::simple::entity;
+	using exces::simple::manager;
 
-	exces::manager<> m;
+	std::vector<entity> e(4);
+	manager m;
 
 	m.add(e[0], greeting("Heya"));
 	m.add(e[1], location("World"), greeting("Hello"));

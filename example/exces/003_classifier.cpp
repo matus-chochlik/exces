@@ -6,7 +6,7 @@
  *  Software License, Version 1.0. (See accompanying file
  *  LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
  */
-#include <exces/exces.hpp>
+#include <exces/simple.hpp>
 
 #include <iostream>
 #include <vector>
@@ -40,8 +40,8 @@ int main(void)
 	const std::size_t ns = sizeof(surnames)/sizeof(surnames[0]);
 
 	const std::size_t n = 200;
-	std::vector<exces::entity<>::type> e(n);
-	exces::manager<> m;
+	std::vector<excess::entity> e(n);
+	excess::manager m;
 	m.reserve<name>(n);
 	m.reserve<surname>(n);
 
@@ -54,13 +54,13 @@ int main(void)
 		);
 	}
 
-	exces::classification<std::string> named(
+	excess::classification<std::string> named(
 		m,
-		[](exces::manager<>& m, exces::manager<>::entity_key k) -> bool
+		[](excess::manager& m, excess::manager::entity_key k) -> bool
 		{
 			return m.has<name>(k);
 		},
-		[](exces::manager<>& m, exces::manager<>::entity_key k) -> std::string
+		[](excess::manager& m, excess::manager::entity_key k) -> std::string
 		{
 			return m.read<name>(k);
 		}
@@ -71,7 +71,7 @@ int main(void)
 		std::cout << names[i] << ": ";
 		named.for_each_mk(
 			names[i],
-			[](exces::manager<>& m, exces::manager<>::entity_key k)->void
+			[](excess::manager& m, excess::manager::entity_key k)->void
 			{
 				if(m.has<surname>(k))
 					std::cout << m.read<surname>(k) << " ";
