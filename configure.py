@@ -77,10 +77,9 @@ def get_argument_parser():
 		action="append",
 		default=list(),
 		help="""
-			Specifies additional directory to search when looking for external
-			headers like GL/glew.h or GL3/gl3.h. The specified path
-			must be absolute or relative to the current working directory
-			from which %(prog)s is invoked. This option may be specified
+			Specifies additional directory to search when looking for external headers.
+			The specified path must be absolute or relative to the current working
+			directory from which %(prog)s is invoked. This option may be specified
 			multiple times to add multiple directories to the search list.
 		"""
 	)
@@ -91,10 +90,9 @@ def get_argument_parser():
 		action="append",
 		default=list(),
 		help="""
-			Specifies additional directory to search when looking for compiled
-			libraries like GL, GLEW, glut, png, etc. The specified
-			path must be absolute or relative to the current working directory
-			from which configure is invoked. This option may be specified
+			Specifies additional directory to search when looking for compiled libraries.
+			The specified path must be absolute or relative to the current working
+			directory from which configure is invoked. This option may be specified
 			multiple times to add multiple directories to the search list.
 		"""
 	)
