@@ -275,7 +275,7 @@ public:
 	template <typename Component>
 	component_key copy(component_key key)
 	{
-		return _store_of<Component>.copy(key);
+		return _store_of<Component>().copy(key);
 	}
 
 	/// Adds reference to the component at the specified key

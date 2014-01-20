@@ -23,11 +23,19 @@ namespace simple {
 /// The entity type
 typedef ::exces::entity<>::type entity;
 
+/// The implicit entity type
+typedef ::exces::implicit_entity<> implicit_entity;
+
 /// The manager type
 typedef ::exces::manager<> manager;
 
+/// The implicit manager type
+typedef ::exces::implicit_manager<> implicit_manager;
+
 /// The classification template
 using ::exces::classification;
+
+using ::exces::copy;
 
 } // namespace simple
 } // namespace exces
