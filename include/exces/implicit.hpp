@@ -12,8 +12,6 @@
 
 #include <exces/manager.hpp>
 
-#include <stack>
-
 namespace exces {
 
 /// Installs/uninstalls an implicit manager for a component Group
@@ -52,47 +50,29 @@ template <typename Group = default_group>
 class implicit_manager
 {
 private:
-	static std::stack<manager<Group>*>& _mgr_stack(void)
-	{
-		static std::stack<manager<Group>*> _ms;
-		return _ms;
-	}
-
 	manager<Group>& _m;
 public:
+	static void _instantiate(void);
+
 	/// Installs the manager m as the current implicit manager
-	implicit_manager(manager<Group>& m)
-	 : _m(m)
-	{
-		_mgr_stack().push(&_m);
-	}
+	implicit_manager(manager<Group>& m);
 
 	/// Uninstalls the manager installed in constructor
-	~implicit_manager(void)
-	{
-		assert(!_mgr_stack().empty());
-		assert(_mgr_stack().top() == &_m);
-		_mgr_stack().pop();
-	}
+	~implicit_manager(void);
 
 	/// Gets a reference to the current implicit manager
-	static manager<Group>& get(void)
-	{
-		assert(!_mgr_stack().empty());
-		assert(_mgr_stack().top() != nullptr);
-		return *_mgr_stack().top();
-	}
+	static manager<Group>& get(void);
 };
 
-/// Entity using the implicit manager to perform operations on itself
+/// Template for entity using the implicit manager to perform operations on itself
 /**
  *  @see implicit_manager
  */
-template <typename Group = default_group>
-struct implicit_entity : entity<Group>::type
+template <typename Base, typename Group>
+struct implicit_entity_tpl : Base
 {
 private:
-	const typename entity<Group>::type& self(void) const
+	const Base& self(void) const
 	{
 		return *this;
 	}
@@ -103,34 +83,34 @@ private:
 	}
 public:
 	/// Default construction
-	implicit_entity(void) = default;
+	implicit_entity_tpl(void) = default;
 
 	/// Construction from basic entity type
-	implicit_entity(typename entity<Group>::type e)
-	 : entity<Group>::type(e)
+	implicit_entity_tpl(Base e)
+	 : Base(e)
 	{ }
 
 	/// Adds the specified components on this entity
 	template <typename ... Components>
-	implicit_entity& add(Components ... components)
+	implicit_entity_tpl& add(Components ... components)
 	{
-		_m().add(self(), components...);
+		_m().template add(self(), components...);
 		return *this;
 	}
 
 	/// Replaces the specified components on this entity
 	template <typename ... Components>
-	implicit_entity& replace(Components ... components)
+	implicit_entity_tpl& replace(Components ... components)
 	{
-		_m().replace(self(), components...);
+		_m().template replace(self(), components...);
 		return *this;
 	}
 
 	/// Removes the specified Components from this entity
 	template <typename ... Components>
-	implicit_entity& remove(void)
+	implicit_entity_tpl& remove(void)
 	{
-		_m().remove<Components...>(self());
+		_m().template remove<Components...>(self());
 		return *this;
 	}
 
@@ -138,21 +118,21 @@ public:
 	template <typename Component>
 	bool has(void) const
 	{
-		return _m().has<Component>(self());
+		return _m().template has<Component>(self());
 	}
 
 	/// Returns true if this entity has all the specified Components
 	template <typename ... Components>
 	bool has_all(void) const
 	{
-		return _m().has_all<Components...>(self());
+		return _m().template has_all<Components...>(self());
 	}
 
 	/// Returns true if this entity has some of the specified Components
 	template <typename ... Components>
 	bool has_some(void) const
 	{
-		return _m().has_some<Components...>(self());
+		return _m().template has_some<Components...>(self());
 	}
 
 	/// Returns a smart reference to the specified Component
@@ -162,7 +142,7 @@ public:
 	template <typename Component>
 	shared_component<Component, Group> ref(void) const
 	{
-		return _m().ref<Component>(self());
+		return _m().template ref<Component>(self());
 	}
 
 	/// Returns a read-only raw reference to the specifed Component
@@ -172,7 +152,7 @@ public:
 	template <typename Component>
 	const Component& read(void) const
 	{
-		return _m().read<Component>(self());
+		return _m().template read<Component>(self());
 	}
 
 	/// Returns a mutable raw reference to the specifed Component
@@ -183,21 +163,42 @@ public:
 	typename shared_component<Component, Group>::component_ref
 	write(void) const
 	{
-		return _m().write<Component>(self());
+		return _m().template write<Component>(self());
 	}
 
 	template <typename ... Components>
-	static void copy(implicit_entity& a, implicit_entity& b)
+	static void copy(implicit_entity_tpl& a, implicit_entity_tpl& b)
 	{
 		_m().template copy<Components...>(a, b);
 	}
 };
 
-template <typename ... Components, typename Group>
-inline void copy(implicit_entity<Group>& a, implicit_entity<Group>& b)
+template <typename ... Components, typename Base, typename Group>
+inline void copy(
+	implicit_entity_tpl<Base, Group>& a,
+	implicit_entity_tpl<Base, Group>& b
+)
 {
-	implicit_entity<Group>::template copy<Components...>(a, b);
+	implicit_entity_tpl<Base, Group>::template copy<Components...>(a, b);
 }
+
+/// Entity using the implicit manager to perform operations on itself
+/**
+ *  @see implicit_manager
+ */
+template <typename Group = default_group>
+struct implicit_entity
+ : implicit_entity_tpl<typename entity<Group>::type, Group>
+{
+private:
+	typedef implicit_entity_tpl<typename entity<Group>::type, Group> _tpl;
+public:
+	implicit_entity(void) = default;
+
+	implicit_entity(typename entity<Group>::type e)
+	 : _tpl(e)
+	{ }
+};
 
 } // namespace exces
 

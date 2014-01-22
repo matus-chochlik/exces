@@ -68,6 +68,8 @@ struct contained
 };
 EXCES_REG_COMPONENT(contained)
 
+#include <exces/implement.hpp>
+
 class physical_system
 {
 private:

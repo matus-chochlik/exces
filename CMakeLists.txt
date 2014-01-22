@@ -11,6 +11,7 @@ option(EXCES_WITH_TESTS "Configure the testsuite" Off)
 include(config/CPP11.cmake)
 
 include_directories(include)
+include_directories(implement)
 
 find_package(Boost)
 if(Boost_FOUND)

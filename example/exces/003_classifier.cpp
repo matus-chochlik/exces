@@ -23,6 +23,8 @@ struct surname : std::string
 };
 EXCES_REG_FLYWEIGHT_COMPONENT(surname)
 
+#include <exces/implement.hpp>
+
 int main(void)
 {
 	const char* names[] = {

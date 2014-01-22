@@ -2,7 +2,7 @@
  *  @file exces/classification.hpp
  *  @brief Entity classification
  *
- *  Copyright 2012-2013 Matus Chochlik. Distributed under the Boost
+ *  Copyright 2012-2014 Matus Chochlik. Distributed under the Boost
  *  Software License, Version 1.0. (See accompanying file
  *  LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
  */
@@ -11,6 +11,7 @@
 #define EXCES_CLASSIFICATION_1304231127_HPP
 
 #include <exces/group.hpp>
+#include <exces/entity_range.hpp>
 
 #include <map>
 
@@ -18,6 +19,42 @@ namespace exces {
 
 template <typename Group>
 class manager;
+
+/// Implementation of basic classsification entity traversal functions
+template <typename Group>
+class classif_entity_range
+{
+private:
+	typedef typename manager<Group>::entity_key entity_key;
+	typedef typename std::vector<entity_key>::const_iterator _iter;
+	_iter _i;
+	const _iter _e;
+public:
+	classif_entity_range(_iter i, _iter e)
+	 : _i(i)
+	 , _e(e)
+	{ }
+
+	/// Indicates that the range is empty (the traversal is done)
+	bool empty(void) const
+	{
+		return _i == _e;
+	}
+
+	/// Returns the current front element of the range
+	entity_key front(void) const
+	{
+		assert(!empty());
+		return *_i;
+	}
+
+	/// Moves the front of the range one element ahead
+	void next(void)
+	{
+		assert(!empty());
+		++_i;
+	}
+};
 
 /// Base interface for entity classifications
 /**
@@ -35,30 +72,15 @@ private:
 	update_key _cur_uk;
 	
 	virtual void insert(entity_key key) = 0;
-
 	virtual update_key begin_update(entity_key key) = 0;
-
 	virtual void finish_update(entity_key ekey, update_key) = 0;
-
 	virtual void remove(entity_key key) = 0;
 protected:
-	update_key _next_update_key(void)
-	{
-		if(_cur_uk == 0) ++_cur_uk;
-		return _cur_uk++;
-	}
+	update_key _next_update_key(void);
 
-	manager<Group>& _manager(void) const
-	{
-		assert(_pmanager);
-		return *_pmanager;
-	}
+	manager<Group>& _manager(void) const;
 
-	void _register(void)
-	{
-		assert(_pmanager);
-		_pmanager->add_classification(this);
-	}
+	void _register(void);
 
 	any_classification(manager<Group>& parent_manager)
 	 : _pmanager(&parent_manager)
@@ -67,25 +89,9 @@ protected:
 public:
 	any_classification(const any_classification&) = delete;
 
-	any_classification(any_classification&& tmp)
-	 : _pmanager(tmp.pmanager)
-	 , _cur_uk(tmp._cur_uk)
-	{
-		if(_pmanager)
-		{
-			_pmanager->move_classification(&tmp, this);
-			tmp._pmanager = nullptr;
-		}
-	}
+	any_classification(any_classification&& tmp);
 
-	virtual ~any_classification(void)
-	{
-		if(_pmanager != nullptr)
-		{
-			_pmanager->remove_classification(this);
-		}
-	}
-	
+	virtual ~any_classification(void);
 };
 
 /// A template for entity classifications
@@ -112,12 +118,20 @@ class classification
  : public any_classification<Group>
 {
 private:
+	typedef any_classification<Group> _base;
+
 	std::function<
-		bool (manager<Group>&, typename manager<Group>::entity_key)
+		bool (
+			manager<Group>&,
+			typename manager<Group>::entity_key
+		)
 	> _filter_entity;
 
 	std::function<
-		Class (manager<Group>&, typename manager<Group>::entity_key)
+		Class (
+			manager<Group>&,
+			typename manager<Group>::entity_key
+		)
 	> _classify;
 
 	std::function<bool (Class)> _filter_class;
@@ -135,156 +149,14 @@ private:
 		_update_map;
 	_update_map _updates;
 
-	void insert(entity_key key, Class entity_class)
-	{
-		typename _class_map::iterator p =
-			_classes.find(entity_class);
+	void insert(entity_key key, Class entity_class);
+	void insert(entity_key key);
 
-		if(p == _classes.end())
-		{
-			_classes.insert(
-				typename _class_map::value_type(
-					entity_class,
-					_entity_key_vector(1, key)
-				)
-			);
-		}
-		else
-		{
-			assert(std::find(
-				p->second.begin(),
-				p->second.end(),
-				key
-			) == p->second.end());
+	void remove(entity_key key, Class entity_class);
+	void remove(entity_key key);
 
-			p->second.push_back(key);
-		}
-	}
-
-	void insert(entity_key key)
-	{
-		if(!_filter_entity || _filter_entity(this->_manager(), key))
-		{
-			Class entity_class = _classify(this->_manager(), key);
-			if(!_filter_class || _filter_class(entity_class))
-			{
-				insert(key, entity_class);
-			}
-		}
-	}
-
-	void remove(entity_key key, Class entity_class)
-	{
-		// find its class
-		typename _class_map::iterator cp =
-			_classes.find(entity_class);
-		
-		assert(cp != _classes.end());
-		// find its position
-		typename _entity_key_vector::iterator ep =
-			std::find(
-				cp->second.begin(),
-				cp->second.end(),
-				key
-			);
-		assert(ep != cp->second.end());
-		// erase it from the vector
-		// in its class
-		cp->second.erase(ep);
-	}
-
-	void remove(entity_key key)
-	{
-		if(!_filter_entity || _filter_entity(this->_manager(), key))
-		{
-			Class entity_class = _classify(this->_manager(), key);
-			if(!_filter_class || _filter_class(entity_class))
-			{
-				remove(key, entity_class);
-			}
-		}
-	}
-
-	update_key begin_update(entity_key key)
-	{
-		update_key result = 0;
-		if(!_filter_entity || _filter_entity(this->_manager(), key))
-		{
-			Class old_class = _classify(this->_manager(), key);
-
-			if(!_filter_class || _filter_class(old_class))
-			{
-				typename _class_map::iterator p =
-					_classes.find(old_class);
-
-				if(p != _classes.end())
-				{
-					result = this->_next_update_key();
-					_updates[result] = p;
-				}
-			}
-		}
-		return result;
-	}
-
-	void finish_update(entity_key ekey, update_key ukey)
-	{
-		typename _update_map::iterator u = _updates.find(ukey);
-
-		if(!_filter_entity || _filter_entity(this->_manager(), ekey))
-		{
-			Class new_class = _classify(this->_manager(), ekey);
-
-			// if the entity was previously classified
-			if(u != _updates.end())
-			{
-				// and it was classified differently
-				if(u->second->first != new_class)
-				{
-					// find its position
-					typename _entity_key_vector::iterator ep =
-						std::find(
-							u->second->second.begin(),
-							u->second->second.end(),
-							ekey
-						);
-					assert(ep != u->second->second.end());
-					// erase it from the vector
-					// in the old class
-					u->second->second.erase(ep);
-				}
-				// if its previous class was the same
-				// no need to reclassify
-				else return;
-			}
-			if(!_filter_class || _filter_class(new_class))
-			{
-				// insert it into the vector
-				// of the new class
-				insert(ekey, new_class);
-			}
-		}
-		else
-		{
-			// if the entity was previously classified
-			if(u != _updates.end())
-			{
-				// find its position
-				typename _entity_key_vector::iterator ep =
-					std::find(
-						u->second->second.begin(),
-						u->second->second.end(),
-						ekey
-					);
-				assert(ep != u->second->second.end());
-				// erase it from the vector
-				// in the old class
-				u->second->second.erase(ep);
-			}
-		}
-	}
-
-	typedef any_classification<Group> _base;
+	update_key begin_update(entity_key key);
+	void finish_update(entity_key ekey, update_key ukey);
 
 	template <typename Component>
 	static bool _has_component(
@@ -318,6 +190,8 @@ private:
 	};
 	
 public:
+	static void _instantiate(void);
+
 	/// Constructs a new instance
 	/** The @p parent_manager must not be destroyed during the whole
 	 *  lifetime of the newly constructed classification. The classifier
@@ -389,39 +263,56 @@ public:
 	{ }
 
 	/// Returns the number of different classes
-	std::size_t class_count(void) const
-	{
-		return _classes.size();
-	}
+	std::size_t class_count(void) const;
+
+	/// Returns the number of entities of the specified class
+	std::size_t cardinality(const Class& entity_class) const;
 
 	/// Execute a @p function on each entity in the specified entity_class.
 	/**
+	 *  @see for_each_cmv
 	 *  @see for_each_mke
 	 */
 	void for_each(
-		Class entity_class,
+		const Class& entity_class,
 		const std::function<void(
 			manager<Group>&,
 			typename manager<Group>::entity_key,
 			typename entity<Group>::type
 		)>& function
+	) const;
+
+	
+	/// Execute a @p functor on each entity's component member variable.
+	/**
+	 *  @see for_each
+	 *  @see for_each_mke
+	 */
+	template <typename Component, typename MemVarType, typename Functor>
+	void for_each_cmv(
+		const Class& entity_class,
+		MemVarType Component::* mem_var_ptr,
+		Functor functor
 	) const
 	{
-		typename _class_map::const_iterator p =
-			_classes.find(entity_class);
-		if(p != _classes.end())
+		std::function<void(
+			manager<Group>&,
+			typename manager<Group>::entity_key,
+			typename entity<Group>::type
+		)> wf = [&mem_var_ptr, &functor](
+			manager<Group>& m,
+			typename manager<Group>::entity_key k,
+			typename entity<Group>::type
+		) -> void
 		{
-			typename _entity_key_vector::const_iterator
-				i = p->second.begin(),
-				e = p->second.end();
-
-			while(i != e)
+			if(m.template has<Component>(k))
 			{
-				auto k = *i;
-				function(this->_manager(), k, k->first);
-				++i;
+				functor(
+					m.template read<Component>(k)
+						.*mem_var_ptr
+				);
 			}
-		}
+		};
 	}
 
 	/// Execute a @p functor on each entity in the specified entity_class.
@@ -429,7 +320,10 @@ public:
 	 *  @see for_each
 	 */
 	template <typename Functor>
-	void for_each_mk(Class entity_class, Functor functor) const
+	void for_each_mk(
+		const Class& entity_class,
+		Functor functor
+	) const
 	{
 		std::function<void(
 			manager<Group>&,

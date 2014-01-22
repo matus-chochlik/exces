@@ -2,7 +2,7 @@
  *  @file exces/metaprog.hpp
  *  @brief Meta-programming utilities
  *
- *  Copyright 2012-2013 Matus Chochlik. Distributed under the Boost
+ *  Copyright 2012-2014 Matus Chochlik. Distributed under the Boost
  *  Software License, Version 1.0. (See accompanying file
  *  LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
  */
@@ -19,7 +19,9 @@ using mp::get;
 using mp::tuple;
 using mp::make_tuple;
 
-} // namespac exces
+} // namespace exces
+
+#define EXCES_INSTANTIATE(TYPE) { auto f = &TYPE::_instantiate; if(!f&&f) f(); }
 
 #endif //include guard
 

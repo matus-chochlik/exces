@@ -36,6 +36,8 @@ struct name
 };
 EXCES_REG_COMPONENT(name)
 
+#include <exces/implement.hpp>
+
 int main(void)
 {
 	using exces::simple::entity;

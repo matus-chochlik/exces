@@ -2,7 +2,7 @@
  *  @file exces/manager.hpp
  *  @brief Implements component manager
  *
- *  Copyright 2012-2013 Matus Chochlik. Distributed under the Boost
+ *  Copyright 2012-2014 Matus Chochlik. Distributed under the Boost
  *  Software License, Version 1.0. (See accompanying file
  *  LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
  */
@@ -11,6 +11,8 @@
 #define EXCES_MANAGER_1212101457_HPP
 
 #include <exces/entity.hpp>
+#include <exces/entity_range.hpp>
+#include <exces/entity_filters.hpp>
 #include <exces/storage.hpp>
 #include <exces/component.hpp>
 #include <exces/classification.hpp>
@@ -18,7 +20,6 @@
 #include <array>
 #include <vector>
 #include <map>
-#include <bitset>
 #include <cassert>
 #include <stdexcept>
 #include <functional>
@@ -26,6 +27,44 @@
 #include <iterator>
 
 namespace exces {
+
+template <typename Group>
+class manager;
+
+/// Implementation of basic manager entity traversal functions
+template <typename Group>
+class manager_entity_range
+{
+private:
+	typedef typename manager<Group>::entity_key entity_key;
+	entity_key _i;
+	const entity_key _e;
+public:
+	manager_entity_range(entity_key i, entity_key e)
+	 : _i(i)
+	 , _e(e)
+	{ }
+
+	/// Indicates that the range is empty (the traversal is done)
+	bool empty(void) const
+	{
+		return _i == _e;
+	}
+
+	/// Returns the current front element of the range
+	entity_key front(void) const
+	{
+		assert(!empty());
+		return _i;
+	}
+
+	/// Moves the front of the range one element ahead
+	void next(void)
+	{
+		assert(!empty());
+		++_i;
+	}
+};
 
 /// Manages the components of entities
 template <typename Group = default_group>
@@ -41,99 +80,16 @@ private:
 
 	// type of the bitset used to indicate which components
 	// an entity has
-	typedef std::bitset<_component_count::value> _component_bitset;
+	typedef aux_::component_bitset<Group> _component_bitset;
 
-	// less than comparison for bitsets smaller than uint
-	struct _component_bitset_less_small
-	{
-		bool operator()(
-			const _component_bitset& a,
-			const _component_bitset& b
-		) const
-		{
-			return a.to_ulong() < b.to_ulong();
-		}
-	};
-
-	// less than comparison for bitsets bigger than uint
-	struct _component_bitset_less_big
-	{
-		bool operator()(
-			const _component_bitset& a,
-			const _component_bitset& b
-		) const
-		{
-			for(std::size_t i=0; i!=_component_count(); ++i)
-			{
-				if(a[i] < b[i]) return true;
-				if(a[i] > b[i]) return false;
-			}
-			return false;
-		}
-	};
-
-	// the less than comparison functor to be used
-	// when comparing two bitsets
-	typedef typename mp::if_c<
-		_component_count::value <= sizeof(unsigned long)*8,
-		_component_bitset_less_small,
-		_component_bitset_less_big
-	>::type _component_bitset_less;
-
-	// type of the component index (unsigned int with sufficient range)
-	typedef typename component_index<Group>::type _component_index_t;
 
 	// converts static group-unique component-ids for a bitset with
 	// a particular combination of bits set into a vector of indices
 	// to a vector-of-keys pointing to the individual components
 	// (ordered by their ids) in the storage.
-	struct _component_index_map
-	{
-	public:
-		typedef std::array<
-			_component_index_t,
-			_component_count::value
-		> _index_vector;
-	private:
-		typedef std::map<
-			_component_bitset,
-			_index_vector,
-			_component_bitset_less
-		> _index_map;
+	typedef aux_::component_index_map<Group> _component_index_map;
 
-		_index_map _indices;
-	public:
-		const _index_vector& get(_component_bitset bits) const
-		{
-			typename _index_map::iterator p = _indices.find(bits);
-			assert(p != _indices.end());
-			return p->second;
-		}
-
-		const _index_vector& get(_component_bitset bits)
-		{
-			std::pair<
-				typename _index_map::iterator,
-				bool
-			> r = _indices.insert(
-				typename _index_map::value_type(
-					bits,
-					_index_vector()
-				)
-			);
-			assert(r.first != _indices.end());
-			// if a new element was inserted
-			if(r.second)
-			{
-				_component_index_t i = 0;
-				for(std::size_t j=0; j!=_component_count(); ++j)
-				{
-					if(bits[j]) r.first->second[j] = i++;
-				}
-			}
-			return r.first->second;
-		}
-	} _component_indices;
+	_component_index_map _component_indices;
 
 	// a vector of keys that allow to access the components
 	// (ordered by their ids) in the storage
@@ -261,8 +217,8 @@ private:
 		_component_storage& _storage;
 		_component_key_vector& _src_keys;
 		_component_key_vector& _dst_keys;
-		const typename _component_index_map::_index_vector& _src_map;
-		const typename _component_index_map::_index_vector& _dst_map;
+		const typename _component_index_map::index_vector& _src_map;
+		const typename _component_index_map::index_vector& _dst_map;
 
 		template <typename Component>
 		void operator()(mp::identity<Component>) const
@@ -454,6 +410,8 @@ private:
 		}
 	}
 public:
+	static void _instantiate(void);
+
 	/// The type of entity used by this manager
 	typedef typename entity<Group>::type entity_type;
 
@@ -569,7 +527,7 @@ public:
 		_component_key_vector& old_keys = ek->second._component_keys;
 		assert(old_keys.size() == old_bits.count());
 
-		const typename _component_index_map::_index_vector
+		const typename _component_index_map::index_vector
 			&old_map = _component_indices.get(old_bits),
 			&new_map = _component_indices.get(new_bits);
 
@@ -692,7 +650,7 @@ public:
 		_component_key_vector& old_keys = ek->second._component_keys;
 		assert(old_keys.size() == old_bits.count());
 
-		const typename _component_index_map::_index_vector
+		const typename _component_index_map::index_vector
 			&old_map = _component_indices.get(old_bits),
 			&new_map = _component_indices.get(new_bits);
 
@@ -789,7 +747,7 @@ public:
 
 		_component_key_vector& new_keys = ek->second._component_keys;
 
-		const typename _component_index_map::_index_vector
+		const typename _component_index_map::index_vector
 			&new_map = _component_indices.get(new_bits);
 
 		const std::size_t cc = _component_count();
@@ -868,7 +826,7 @@ public:
 
 		_component_key_vector& new_keys = ek->second._component_keys;
 
-		const typename _component_index_map::_index_vector
+		const typename _component_index_map::index_vector
 			&new_map = _component_indices.get(
 				ek->second._component_bits
 			);
@@ -907,9 +865,9 @@ public:
 		tei._component_bits |= cpy_bits;
 		tei._component_keys.resize(tei._component_bits.count());
 
-		const typename _component_index_map::_index_vector &src_map =
+		const typename _component_index_map::index_vector &src_map =
 			_component_indices.get(fei._component_bits);
-		const typename _component_index_map::_index_vector &dst_map =
+		const typename _component_index_map::index_vector &dst_map =
 			_component_indices.get(tei._component_bits);
 
 		_component_copier copier = {
@@ -1335,107 +1293,38 @@ public:
 		return for_each(wf);
 	}
 
-	/// Range for traversal of entities that are the result of a query
-	struct entity_range
-	{
-	private:
-		manager& _m;
-		entity_key _i;
-		const entity_key _e;
-		std::function<bool (manager&, entity_key)> _pred;
+	/// The entity range type
+	typedef entity_range_tpl<
+		Group,
+		manager_entity_range<Group>
+	> entity_range;
 
-		void _skip(void)
-		{
-			while(!empty() && !_pred(_m, front()))
-			{
-				++_i;
-			}
-		}
-	public:
-		entity_range(
-			manager& man,
-			entity_key i,
-			entity_key e,
-			std::function<bool (manager&, entity_key)> pred
-		): _m(man)
-		 , _i(i)
-		 , _e(e)
-		 , _pred(pred)
-		{
-			_skip();
-		}
-
-		/// Indicates that the range is empty (the traversal is done)
-		bool empty(void) const
-		{
-			return _i == _e;
-		}
-
-		/// Returns the current front element of the range
-		entity_key front(void) const
-		{
-			assert(!empty());
-			return _i;
-		}
-
-		/// Returns the Component of the entity at front of the range
-		template <typename Component>
-		shared_component<Component> front_component(void) const
-		{
-			return _m.template ref<Component>(front());
-		}
-
-		template <typename Component>
-		const Component& read(void) const
-		{
-			return front_component<Component>().read();
-		}
-
-		/// Moves the front of the range one element ahead
-		void next(void)
-		{
-			assert(!empty());
-			++_i;
-			_skip();
-		}
-	};
-
-	/// Returns an entity_range containing entities satisfying predicate
-	entity_range select(std::function<bool(manager&, entity_key)> predicate)
+	/// Returns an entity_range containing entities satisfying a predicate
+	entity_range select(
+		const std::function<
+			bool(manager&, entity_key)
+		>& predicate
+	)
 	{
 		return entity_range(
 			*this, 
-			_entities.begin(),
-			_entities.end(),
+			manager_entity_range<Group>(
+				_entities.begin(),
+				_entities.end()
+			),
 			predicate
 		);
-	}
-
-	template <typename Sequence>
-	struct _with_components
-	{
-		bool operator ()(manager& m, entity_key key) const
-		{
-			return m.has_all_seq(key, Sequence());
-		}
-	};
-
-	/// Returns an entity_range containing entities with the components
-	template <typename Sequence>
-	entity_range select_with_seq(Sequence seq = Sequence())
-	{
-		return select(_with_components<Sequence>());
 	}
 
 	/// Returns an entity_range containing entities with the Components
 	template <typename ... Components>
 	entity_range select_with(void)
 	{
-		return select_with_seq(mp::typelist<Components...>());
+		return select(entity_with<Components...>());
 	}
 };
 
-namespace aux {
+namespace aux_ {
 
 template <typename Component, typename Group>
 inline void manager_replace_component_at(
@@ -1448,7 +1337,7 @@ inline void manager_replace_component_at(
 	mngr.replace_component_at(ek, ck, std::move(component));
 }
 
-} // namespace aux
+} // namespace aux_
 } // namespace exces
 
 #endif //include guard

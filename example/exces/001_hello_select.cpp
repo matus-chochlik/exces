@@ -36,6 +36,8 @@ struct name
 };
 EXCES_REG_COMPONENT(name)
 
+#include <exces/implement.hpp>
+
 int main(void)
 {
 	std::vector<excess::entity> e(4);
