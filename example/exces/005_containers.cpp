@@ -240,7 +240,7 @@ public:
 	{
 		physical_system& ps;
 
-		void operator()(manager& m, entity_key k, entity_type e, named& n) const
+		void operator()(manager& m, entity_key k, entity_type e, const named& n) const
 		{
 			std::cout << n.name << ":";
 			if(m.has<container>(k))
@@ -248,7 +248,7 @@ public:
 				std::cout << " contains { ";
 				contained_printer cp = { e };
 				// for each entity with the specified components
-				m.for_each_c<named, contained>(cp);
+				m.for_each(exces::adapt_func_cs<named&, contained&>(cp));
 				std::cout << "}";
 			}
 			if(m.has<physical>(k))
@@ -266,7 +266,7 @@ public:
 		// for each entity with the specified components
 		// passing also the rererence to the manager, entity
 		// key and entity to the functor
-		_manager.for_each_mkec<named>(p);
+		_manager.for_each(exces::adapt_func_mkec<const named&>(p));
 	}
 };
 

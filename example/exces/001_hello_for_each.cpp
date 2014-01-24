@@ -52,7 +52,7 @@ int main(void)
 	m.add(e[3], greeting("Yo"), name("Frankie"));
 
 	std::function<void (greeting&, location&)> func =
-		[](greeting& g, location& l) -> void
+		[](const greeting& g, const location& l) -> void
 		{
 			std::cout << g.str << " " << l.str << "!" << std::endl;
 		};

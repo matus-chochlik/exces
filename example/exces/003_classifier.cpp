@@ -71,7 +71,7 @@ int main(void)
 	for(std::size_t i=0; i!=nn; ++i)
 	{
 		std::cout << names[i] << ": ";
-		named.for_each_mk(
+		named.for_each(
 			names[i],
 			[](excess::manager& m, excess::manager::entity_key k)->void
 			{

@@ -257,8 +257,7 @@ for_each(
 	const Class& entity_class,
 	const std::function<void(
 		manager<Group>&,
-		typename manager<Group>::entity_key,
-		typename entity<Group>::type
+		typename manager<Group>::entity_key
 	)>& function
 ) const
 {
@@ -273,7 +272,7 @@ for_each(
 		while(i != e)
 		{
 			auto k = *i;
-			function(this->_manager(), k, k->first);
+			function(this->_manager(), k);
 			++i;
 		}
 	}
@@ -297,8 +296,7 @@ _instantiate(void)
 	)> cl;
 	std::function<void (
 		manager<Group>&,
-		typename manager<Group>::entity_key,
-		typename entity<Group>::type
+		typename manager<Group>::entity_key
 	)> fe;
 	classification<Class, Group> c(m, fi, cl);
 	c.cardinality(Class());

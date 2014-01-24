@@ -71,6 +71,18 @@ template <typename Group = default_group>
 class manager
 {
 private:
+	template <typename C>
+	struct _fix1
+	 : std::remove_cv<typename std::remove_reference<C>::type>
+	{ };
+
+	// metafunction removing type decorations from component typenames
+	template <typename ... C>
+	struct _fixn
+	{
+		typedef mp::typelist<typename _fix1<C>::type...> type;
+	};
+
 	// component storage
 	typedef component_storage<Group> _component_storage;
 	_component_storage _storage;
@@ -158,7 +170,7 @@ private:
 	template <typename ... Components>
 	static const _component_bitset& _get_bits(void)
 	{
-		return _get_bits(mp::typelist<Components...>());
+		return _get_bits(typename _fixn<Components...>::type());
 	}
 
 	// helper functor that adds a Component into the storage
@@ -264,19 +276,7 @@ private:
 	// gets the information about an entity, throws if the entity
 	// is not registered
 	typename _entity_info_map::iterator
-	_find_entity(typename entity<Group>::type e)
-	{
-		typename _entity_info_map::iterator p = _entities.find(e);
-		
-		if(p == _entities.end())
-		{
-			throw ::std::invalid_argument(
-				"exces::entity manager: "
-				"requested entity not found"
-			);
-		}
-		return p;
-	}
+	_find_entity(typename entity<Group>::type e);
 
 	// get the key of the specified component of an entity
 	// pointed to by pos
@@ -305,110 +305,22 @@ private:
 	std::vector<any_classification<Group>*> _classifications;
 	friend class any_classification<Group>;
 
-	void add_classification(any_classification<Group>* cl)
-	{
-		assert(cl != nullptr);
-		assert(std::find(
-			_classifications.begin(),
-			_classifications.end(),
-			cl
-		) == _classifications.end());
-
-		_classifications.push_back(cl);
-
-		typename _entity_info_map::iterator
-			i = _entities.begin(),
-			e = _entities.end();
-
-		while(i != e)
-		{
-			cl->insert(i);
-			++i;
-		}
-	}
-
+	void add_classification(any_classification<Group>* cl);
+	void remove_classification(any_classification<Group>* cl);
 	void move_classification(
 		any_classification<Group>* old_cl,
 		any_classification<Group>* new_cl
-	)
-	{
-		assert(old_cl != nullptr);
-		assert(new_cl != nullptr);
-		assert(std::find(
-			_classifications.begin(),
-			_classifications.end(),
-			old_cl
-		) != _classifications.end());
-		assert(std::find(
-			_classifications.begin(),
-			_classifications.end(),
-			new_cl
-		) == _classifications.end());
-
-		std::replace(
-			_classifications.begin(),
-			_classifications.end(),
-			old_cl,
-			new_cl
-		);
-	}
-
-	void remove_classification(any_classification<Group>* cl)
-	{
-		auto p = std::find(
-			_classifications.begin(),
-			_classifications.end(),
-			cl
-		);
-		assert(p != _classifications.end());
-		_classifications.erase(p);
-	}
+	);
 
 	typedef std::vector<std::size_t> _class_update_key_list;
 
 	_class_update_key_list _begin_class_update(
 		typename _entity_info_map::iterator key
-	)
-	{
-		auto i = _classifications.begin();
-		auto e = _classifications.end();
-
-		std::size_t j = 0;
-		_class_update_key_list result(_classifications.size());
-
-		while(i != e)
-		{
-			any_classification<Group>* pc = *i;
-			assert(pc != nullptr);
-			result[j] = pc->begin_update(key);
-			++i;
-			++j;
-		}
-
-		return std::move(result);
-	}
-
+	);
 	void _finish_class_update(
 		typename _entity_info_map::iterator key,
 		const _class_update_key_list& update_keys
-	)
-	{
-		assert(_classifications.size() == update_keys.size());
-
-		auto i = _classifications.begin();
-		auto e = _classifications.end();
-
-		auto u = update_keys.begin();
-
-		while(i != e)
-		{
-			any_classification<Group>* pc = *i;
-			assert(pc != nullptr);
-			pc->finish_update(key, *u);
-			++i;
-			++u;
-		}
-	}
+	);
 public:
 	static void _instantiate(void);
 
@@ -496,7 +408,7 @@ public:
 	template <typename ... Components>
 	manager& reserve(std::size_t n)
 	{
-		return reserve_seq(n, mp::typelist<Components...>());
+		return reserve_seq(n, typename _fixn<Components...>::type());
 	}
 
 	/// Adds the specified components to the specified entity
@@ -707,7 +619,7 @@ public:
 	template <typename ... Components>
 	manager& remove(entity_key k)
 	{
-		return remove_seq<mp::typelist<Components...> >(k);
+		return remove_seq<typename _fixn<Components...>::type>(k);
 	}
 
 	/// Removes the specified components from the specified entity
@@ -719,7 +631,7 @@ public:
 	template <typename ... Components>
 	manager& remove(entity_type e)
 	{
-		return remove_seq<mp::typelist<Components...> >(e);
+		return remove_seq<typename _fixn<Components...>::type>(e);
 	}
 
 	/// Replaces the specified components in the specified entity
@@ -913,7 +825,7 @@ public:
 	template <typename ... Components>
 	manager& copy(entity_key f, entity_key t)
 	{
-		return copy_seq(f, t, mp::typelist<Components...>());
+		return copy_seq(f, t, typename _fixn<Components...>::type());
 	}
 
 	/// Copy the specified components between the specified entities
@@ -927,14 +839,15 @@ public:
 	template <typename ... Components>
 	manager& copy(entity_type from, entity_type to)
 	{
-		return copy_seq(from, to, mp::typelist<Components...>());
+		return copy_seq(from, to, typename _fixn<Components...>::type());
 	}
 
 	/// Returns true if the specified entity has the specified Component
 	template <typename Component>
 	bool has(entity_key ek)
 	{
-		const std::size_t cid = component_id<Component, Group>::value;
+		typedef typename _fix1<Component>::type fixed_C;
+		const std::size_t cid = component_id<fixed_C, Group>::value;
 		assert(ek != _entities.end());
 		return ek->second._component_bits.test(cid);
 	}
@@ -943,7 +856,8 @@ public:
 	template <typename Component>
 	bool has(entity_type e)
 	{
-		const std::size_t cid = component_id<Component, Group>::value;
+		typedef typename _fix1<Component>::type fixed_C;
+		const std::size_t cid = component_id<fixed_C, Group>::value;
 		typename _entity_info_map::const_iterator ek = _entities.find(e);
 		if(ek == _entities.end()) return false;
 		return ek->second._component_bits.test(cid);
@@ -972,14 +886,14 @@ public:
 	template <typename ... Components>
 	bool has_all(entity_key ek)
 	{
-		return has_all_seq(ek, mp::typelist<Components...>());
+		return has_all_seq(ek, typename _fixn<Components...>::type());
 	}
 
 	/// Returns true if the specified entity has all the specified Components
 	template <typename ... Components>
 	bool has_all(entity_type e)
 	{
-		return has_all_seq(e, mp::typelist<Components...>());
+		return has_all_seq(e, typename _fixn<Components...>::type());
 	}
 
 	/// Returns true if the specified entity has some of the Components
@@ -1005,14 +919,14 @@ public:
 	template <typename ... Components>
 	bool has_some(entity_key ek)
 	{
-		return has_some_seq(ek, mp::typelist<Components...>());
+		return has_some_seq(ek, typename _fixn<Components...>::type());
 	}
 
 	/// Returns true if the specified entity has some of the Components
 	template <typename ... Components>
 	bool has_some(entity_type e)
 	{
-		return has_some_seq(e, mp::typelist<Components...>());
+		return has_some_seq(e, typename _fixn<Components...>::type());
 	}
 
 	/// Gets a shared reference to entity's component
@@ -1027,12 +941,13 @@ public:
 	template <typename Component>
 	shared_component<Component, Group> ref(entity_key ek)
 	{
-		std::size_t cid = component_id<Component, Group>::value;
+		typedef typename _fix1<Component>::type fixed_C;
+		std::size_t cid = component_id<fixed_C, Group>::value;
 		typename _component_storage::component_key key;
 		if(ek->second._component_bits.test(cid))
 		{
 
-			typename component_index<Component>::type cidx =
+			typename component_index<fixed_C>::type cidx =
 				_component_indices.get(
 					ek->second._component_bits
 				)[cid];
@@ -1044,7 +959,7 @@ public:
 			key = _storage.null_key();
 		}
 
-		return shared_component<Component, Group>(*this, ek, _storage, key);
+		return shared_component<fixed_C, Group>(*this, ek, _storage, key);
 	}
 
 	/// Gets a shared reference to entity's component
@@ -1161,136 +1076,46 @@ public:
 		return *this;
 	}
 
-	/// Calls the specified function on each entity having the Components
+	/// Calls the specified function on each entity
+	manager& for_each(
+		const std::function<void (
+			manager&,
+			entity_key
+		)>& function
+	);
+
+	/// Calls a function on each entity having the specified Components
 	template <typename ... Components>
 	manager& for_each(
 		const std::function<void (
 			manager&,
 			entity_key,
 			entity_type,
-			Components& ...
+			Components ...
 		)>& function
 	)
 	{
-		_component_bitset _req_bits = _get_bits<Components...>();
-		typename _entity_info_map::iterator
-			i = _entities.begin(),
-			e = _entities.end();
-
-		while(i != e)
-		{
-			// if the current entity has all requested components
-			if((i->second._component_bits & _req_bits) == _req_bits)
-			{
-				function(
-					*this,
-					i,
-					i->first,
-					_storage.template access<Components>(
-						_get_component_key<Components>(i)
-					)...
-				);
-			}
-			++i;
-		}
-
-		return *this;
+		return for_each(adapt_func_mkec<Components...>(function));
 	}
 
-	/// Calls the specified function on each entity having the Components
+	/// Calls a function on each entity having the specified Components
 	template <typename ... Components>
 	manager& for_each(
 		const std::function<void (
 			manager&,
 			entity_type,
-			Components& ...
+			Components ...
 		)>& function
 	)
 	{
-		std::function<
-			void (manager&, entity_key, entity_type, Components& ...)
-		> wf = [&function](
-			manager& m,
-			entity_key,
-			entity_type e,
-			Components& ... components
-		)
-		{
-			function(m, e, components...);
-		};
-		return for_each(wf);
+		return for_each(adapt_func_mkc<Components...>(function));
 	}
 
-	/// Calls the specified function on each entity having the Components
+	/// Calls a function on each entity having the specified Components
 	template <typename ... Components>
-	manager& for_each(const std::function<void (Components& ...)>& function)
+	manager& for_each(const std::function<void (Components ...)>& function)
 	{
-		std::function<
-			void (manager&, entity_key, entity_type, Components& ...)
-		> wf = [&function](
-			manager&,
-			entity_key,
-			entity_type,
-			Components& ... components
-		)
-		{
-			function(components...);
-		};
-		return for_each(wf);
-	}
-
-	/// Calls the specified functor on each entity having the Components
-	template <typename ... Components, typename Func>
-	manager& for_each_mkec(Func functor)
-	{
-		std::function<
-			void (manager&, entity_key, entity_type, Components& ...)
-		> wf = [&functor](
-			manager& m,
-			entity_key k,
-			entity_type e,
-			Components& ... components
-		)
-		{
-			functor(m, k, e, components...);
-		};
-		return for_each(wf);
-	}
-
-	/// Calls the specified functor on each entity having the Components
-	template <typename ... Components, typename Func>
-	manager& for_each_mec(Func functor)
-	{
-		std::function<
-			void (manager&, entity_key, entity_type, Components& ...)
-		> wf = [&functor](
-			manager& m,
-			entity_key,
-			entity_type e,
-			Components& ... components
-		)
-		{
-			functor(m, e, components...);
-		};
-		return for_each(wf);
-	}
-
-	/// Calls the specified functor on each entity having the Components
-	template <typename ... Components, typename Func>
-	manager& for_each_c(Func functor)
-	{
-		std::function<
-			void (manager&, entity_key, entity_type, Components& ...)
-		> wf = [&functor](
-			manager&,
-			entity_key,
-			entity_type,
-			Components& ... components
-		)
-		{
-			functor(components...);
-		};
-		return for_each(wf);
+		return for_each(adapt_func_cs<Components...>(function));
 	}
 
 	/// The entity range type

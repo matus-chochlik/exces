@@ -12,6 +12,7 @@
 
 #include <exces/group.hpp>
 #include <exces/entity_range.hpp>
+#include <exces/entity_filters.hpp>
 
 #include <map>
 
@@ -269,98 +270,13 @@ public:
 	std::size_t cardinality(const Class& entity_class) const;
 
 	/// Execute a @p function on each entity in the specified entity_class.
-	/**
-	 *  @see for_each_cmv
-	 *  @see for_each_mke
-	 */
 	void for_each(
 		const Class& entity_class,
 		const std::function<void(
 			manager<Group>&,
-			typename manager<Group>::entity_key,
-			typename entity<Group>::type
+			typename manager<Group>::entity_key
 		)>& function
 	) const;
-
-	
-	/// Execute a @p functor on each entity's component member variable.
-	/**
-	 *  @see for_each
-	 *  @see for_each_mke
-	 */
-	template <typename Component, typename MemVarType, typename Functor>
-	void for_each_cmv(
-		const Class& entity_class,
-		MemVarType Component::* mem_var_ptr,
-		Functor functor
-	) const
-	{
-		std::function<void(
-			manager<Group>&,
-			typename manager<Group>::entity_key,
-			typename entity<Group>::type
-		)> wf = [&mem_var_ptr, &functor](
-			manager<Group>& m,
-			typename manager<Group>::entity_key k,
-			typename entity<Group>::type
-		) -> void
-		{
-			if(m.template has<Component>(k))
-			{
-				functor(
-					m.template read<Component>(k)
-						.*mem_var_ptr
-				);
-			}
-		};
-	}
-
-	/// Execute a @p functor on each entity in the specified entity_class.
-	/**
-	 *  @see for_each
-	 */
-	template <typename Functor>
-	void for_each_mk(
-		const Class& entity_class,
-		Functor functor
-	) const
-	{
-		std::function<void(
-			manager<Group>&,
-			typename manager<Group>::entity_key,
-			typename entity<Group>::type
-		)> wf = [&functor](
-			manager<Group>& m,
-			typename manager<Group>::entity_key k,
-			typename entity<Group>::type
-		) -> void
-		{
-			functor(m, k);
-		};
-		for_each(entity_class, wf);
-	}
-
-	/// Execute a @p functor on each entity in the specified entity_class.
-	/**
-	 *  @see for_each
-	 */
-	template <typename Functor>
-	void for_each_mke(Class entity_class, Functor functor) const
-	{
-		std::function<void(
-			manager<Group>&,
-			typename manager<Group>::entity_key,
-			typename entity<Group>::type
-		)> wf = [&functor](
-			manager<Group>& m,
-			typename manager<Group>::entity_key k,
-			typename entity<Group>::type e
-		) -> void
-		{
-			functor(m, k, e);
-		};
-		for_each(entity_class, wf);
-	}
 };
 
 } // namespace exces
