@@ -15,6 +15,7 @@
 #include <exces/entity_filters.hpp>
 
 #include <map>
+#include <functional>
 
 namespace exces {
 

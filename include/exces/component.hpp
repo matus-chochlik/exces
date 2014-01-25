@@ -14,6 +14,7 @@
 #include <exces/storage.hpp>
 
 #include <map>
+#include <array>
 #include <bitset>
 #include <cassert>
 #include <type_traits>

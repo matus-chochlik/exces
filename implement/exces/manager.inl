@@ -148,6 +148,220 @@ _finish_class_update(
 }
 //------------------------------------------------------------------------------
 template <typename Group>
+void
+manager<Group>::
+_do_add_seq(
+	typename manager<Group>::entity_key ek,
+	const typename manager<Group>::_component_bitset& add_bits,
+	const std::function<
+		void (typename manager<Group>::_component_adder&)
+	>& for_each_seq
+)
+{
+	auto updates = _begin_class_update(ek);
+
+	_component_bitset  old_bits = ek->second._component_bits;
+
+	ek->second._component_bits |= add_bits;
+
+	_component_bitset& new_bits = ek->second._component_bits;
+
+	const std::size_t cc = _component_count();
+	_component_key_vector tmp_keys(cc);
+	_component_adder adder = { _storage, tmp_keys };
+	for_each_seq(adder);
+	
+	_component_key_vector  new_keys(new_bits.count());
+	_component_key_vector& old_keys = ek->second._component_keys;
+	assert(old_keys.size() == old_bits.count());
+
+	const typename _component_index_map::index_vector
+		&old_map = _component_indices.get(old_bits),
+		&new_map = _component_indices.get(new_bits);
+
+	for(std::size_t i=0; i!=cc; ++i)
+	{
+		if(new_bits.test(i))
+		{
+			if(old_bits.test(i))
+			{
+				new_keys[new_map[i]] =
+					old_keys[old_map[i]];
+			}
+			else
+			{
+				new_keys[new_map[i]] = tmp_keys[i];
+			}
+		}
+		else
+		{
+			assert(!old_bits.test(i));
+		}
+	}
+	swap(new_keys, old_keys);
+
+	_finish_class_update(ek, updates);
+}
+//------------------------------------------------------------------------------
+template <typename Group>
+void
+manager<Group>::
+_do_rem_seq(
+	typename manager<Group>::entity_key ek,
+	const typename manager<Group>::_component_bitset& rem_bits,
+	const std::function<
+		void (typename manager<Group>::_component_remover&)
+	>& for_each_seq
+)
+{
+	auto updates = _begin_class_update(ek);
+
+	if((ek->second._component_bits & rem_bits) != rem_bits)
+	{
+		throw ::std::invalid_argument(
+			"exces::entity manager: "
+			"removing components that "
+			"the entity does not have"
+		);
+	}
+
+	_component_bitset  old_bits = ek->second._component_bits;
+
+	ek->second._component_bits &= ~rem_bits;
+
+	_component_bitset& new_bits = ek->second._component_bits;
+	
+	_component_key_vector  new_keys(new_bits.count());
+	_component_key_vector& old_keys = ek->second._component_keys;
+	assert(old_keys.size() == old_bits.count());
+
+	const typename _component_index_map::index_vector
+		&old_map = _component_indices.get(old_bits),
+		&new_map = _component_indices.get(new_bits);
+
+	const std::size_t cc = _component_count();
+	_component_key_vector tmp_keys(cc);
+	for(std::size_t i=0; i!=cc; ++i)
+	{
+		if(new_bits.test(i))
+		{
+			if(old_bits.test(i))
+			{
+				new_keys[new_map[i]] =
+					old_keys[old_map[i]];
+			}
+			else assert(!"Logic error!");
+		}
+		else
+		{
+			if(old_bits.test(i))
+			{
+				tmp_keys[i] = old_keys[old_map[i]];
+			}
+		}
+	}
+
+	_component_remover remover = { _storage, tmp_keys };
+	for_each_seq(remover);
+
+	swap(new_keys, old_keys);
+
+	_finish_class_update(ek, updates);
+}
+//------------------------------------------------------------------------------
+template <typename Group>
+void
+manager<Group>::
+_do_rep_seq(
+	typename manager<Group>::entity_key ek,
+	const typename manager<Group>::_component_bitset& rep_bits,
+	const std::function<
+		void (typename manager<Group>::_component_replacer&)
+	>& for_each_seq
+)
+{
+	auto updates = _begin_class_update(ek);
+
+	if((ek->second._component_bits & rep_bits) != rep_bits)
+	{
+		throw ::std::invalid_argument(
+			"exces::entity manager: "
+			"replacing components that "
+			"the entity does not have"
+		);
+	}
+
+	_component_bitset& new_bits = ek->second._component_bits;
+
+	_component_key_vector& new_keys = ek->second._component_keys;
+
+	const typename _component_index_map::index_vector
+		&new_map = _component_indices.get(new_bits);
+
+	const std::size_t cc = _component_count();
+	_component_key_vector tmp_keys(cc);
+
+	for(std::size_t i=0; i!=cc; ++i)
+	{
+		if(new_bits.test(i))
+		{
+			tmp_keys[i] = new_keys[new_map[i]];
+		}
+	}
+
+	_component_replacer replacer = { _storage, tmp_keys };
+	for_each_seq(replacer);
+
+	for(std::size_t i=0; i!=cc; ++i)
+	{
+		if(new_bits.test(i))
+		{
+			new_keys[new_map[i]] = tmp_keys[i];
+		}
+	}
+
+
+	_finish_class_update(ek, updates);
+}
+//------------------------------------------------------------------------------
+template <typename Group>
+void
+manager<Group>::
+_do_cpy_seq(
+	typename manager<Group>::entity_key f,
+	typename manager<Group>::entity_key t,
+	const typename manager<Group>::_component_bitset& cpy_bits,
+	const std::function<
+		void(typename manager<Group>::_component_copier&)
+	>& for_each_seq
+)
+{
+	auto updates = _begin_class_update(t);
+
+	_entity_info& fei = f->second;
+	_entity_info& tei = t->second;
+
+	tei._component_bits |= cpy_bits;
+	tei._component_keys.resize(tei._component_bits.count());
+
+	const typename _component_index_map::index_vector &src_map =
+		_component_indices.get(fei._component_bits);
+	const typename _component_index_map::index_vector &dst_map =
+		_component_indices.get(tei._component_bits);
+
+	_component_copier copier = {
+		_storage,
+		fei._component_keys,
+		tei._component_keys,
+		src_map,
+		dst_map
+	};
+	for_each_seq(copier);
+
+	_finish_class_update(t, updates);
+}
+//------------------------------------------------------------------------------
+template <typename Group>
 manager<Group>&
 manager<Group>::
 for_each(

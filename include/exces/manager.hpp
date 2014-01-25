@@ -173,6 +173,23 @@ private:
 		return _get_bits(typename _fixn<Components...>::type());
 	}
 
+	// information about a single entity
+	struct _entity_info
+	{
+		_component_bitset _component_bits;
+
+		_component_key_vector _component_keys;
+	};
+
+	// a map that stores the information about entities
+	// ordered by the id of the entity
+	typedef std::map<
+		typename entity<Group>::type,
+		_entity_info
+	> _entity_info_map;
+	typedef typename _entity_info_map::value_type _entity_info_entry;
+	_entity_info_map _entities;
+
 	// helper functor that adds a Component into the storage
 	// and remembers the key in a vector at the position specified
 	// by the Component's id
@@ -190,6 +207,12 @@ private:
 		}
 	};
 
+	void _do_add_seq(
+		typename _entity_info_map::iterator ek,
+		const _component_bitset& add_bits,
+		const std::function<void (_component_adder& adder)>&
+	);
+
 	// helper functor that removes a Component from the storage
 	struct _component_remover
 	{
@@ -204,6 +227,12 @@ private:
 			_storage.template release<Component>(_keys[cid]);
 		}
 	};
+
+	void _do_rem_seq(
+		typename _entity_info_map::iterator ek,
+		const _component_bitset& rem_bits,
+		const std::function<void(_component_remover&)>&
+	);
 
 	// helper functor that replaces a Component in the storage
 	struct _component_replacer
@@ -222,6 +251,12 @@ private:
 			);
 		}
 	};
+
+	void _do_rep_seq(
+		typename _entity_info_map::iterator ek,
+		const _component_bitset& rep_bits,
+		const std::function<void(_component_replacer&)>&
+	);
 
 	// helper functor that copies components between entities
 	struct _component_copier
@@ -244,22 +279,12 @@ private:
 		}
 	};
 
-	// information about a single entity
-	struct _entity_info
-	{
-		_component_bitset _component_bits;
-
-		_component_key_vector _component_keys;
-	};
-
-	// a map that stores the information about entities
-	// ordered by the id of the entity
-	typedef std::map<
-		typename entity<Group>::type,
-		_entity_info
-	> _entity_info_map;
-	typedef typename _entity_info_map::value_type _entity_info_entry;
-	_entity_info_map _entities;
+	void _do_cpy_seq(
+		typename _entity_info_map::iterator f,
+		typename _entity_info_map::iterator t,
+		const _component_bitset& cpy_bits,
+		const std::function<void(_component_copier&)>&
+	);
 
 	// gets the information about an entity, inserts a new one
 	// if the entity is not registered yet
@@ -277,30 +302,6 @@ private:
 	// is not registered
 	typename _entity_info_map::iterator
 	_find_entity(typename entity<Group>::type e);
-
-	// get the key of the specified component of an entity
-	// pointed to by pos
-	template <typename Component>
-	typename _component_storage::component_key _get_component_key(
-		typename _entity_info_map::iterator pos
-	)
-	{
-		const std::size_t cid = component_id<Component, Group>::value;
-		if(!pos->second._component_bits.test(cid))
-		{
-			throw ::std::invalid_argument(
-				"exces::entity manager: "
-				"entity does not have requested component"
-			);
-		}
-
-		const typename component_index<Component>::type cidx =
-			_component_indices.get(
-				pos->second._component_bits
-			)[cid];
-
-		return pos->second._component_keys[cidx];
-	}
 
 	std::vector<any_classification<Group>*> _classifications;
 	friend class any_classification<Group>;
@@ -420,52 +421,14 @@ public:
 	template <typename Sequence>
 	manager& add_seq(entity_key ek, Sequence seq)
 	{
-		auto updates = _begin_class_update(ek);
-
-		_component_bitset add_bits = _get_bits(seq);
-
-		_component_bitset  old_bits = ek->second._component_bits;
-
-		ek->second._component_bits |= add_bits;
-
-		_component_bitset& new_bits = ek->second._component_bits;
-
-		const std::size_t cc = _component_count();
-		_component_key_vector tmp_keys(cc);
-		_component_adder adder = { _storage, tmp_keys };
-		mp::for_each(seq, adder);
-		
-		_component_key_vector  new_keys(new_bits.count());
-		_component_key_vector& old_keys = ek->second._component_keys;
-		assert(old_keys.size() == old_bits.count());
-
-		const typename _component_index_map::index_vector
-			&old_map = _component_indices.get(old_bits),
-			&new_map = _component_indices.get(new_bits);
-
-		for(std::size_t i=0; i!=cc; ++i)
-		{
-			if(new_bits.test(i))
+		_do_add_seq(
+			ek,
+			_get_bits(seq),
+			[&seq](_component_adder& adder)
 			{
-				if(old_bits.test(i))
-				{
-					new_keys[new_map[i]] =
-						old_keys[old_map[i]];
-				}
-				else
-				{
-					new_keys[new_map[i]] = tmp_keys[i];
-				}
+				mp::for_each(seq, adder);
 			}
-			else
-			{
-				assert(!old_bits.test(i));
-			}
-		}
-		swap(new_keys, old_keys);
-
-		_finish_class_update(ek, updates);
-
+		);
 		return *this;
 	}
 
@@ -540,61 +503,14 @@ public:
 	template <typename Sequence>
 	manager& remove_seq(entity_key ek, const Sequence& seq = Sequence())
 	{
-		auto updates = _begin_class_update(ek);
-
-		_component_bitset rem_bits = _get_bits(seq);
-		if((ek->second._component_bits & rem_bits) != rem_bits)
-		{
-			throw ::std::invalid_argument(
-				"exces::entity manager: "
-				"removing components that "
-				"the entity does not have"
-			);
-		}
-
-		_component_bitset  old_bits = ek->second._component_bits;
-
-		ek->second._component_bits &= ~rem_bits;
-
-		_component_bitset& new_bits = ek->second._component_bits;
-		
-		_component_key_vector  new_keys(new_bits.count());
-		_component_key_vector& old_keys = ek->second._component_keys;
-		assert(old_keys.size() == old_bits.count());
-
-		const typename _component_index_map::index_vector
-			&old_map = _component_indices.get(old_bits),
-			&new_map = _component_indices.get(new_bits);
-
-		const std::size_t cc = _component_count();
-		_component_key_vector tmp_keys(cc);
-		for(std::size_t i=0; i!=cc; ++i)
-		{
-			if(new_bits.test(i))
+		_do_rem_seq(
+			ek,
+			_get_bits(seq),
+			[](_component_remover& remover)
 			{
-				if(old_bits.test(i))
-				{
-					new_keys[new_map[i]] =
-						old_keys[old_map[i]];
-				}
-				else assert(!"Logic error!");
+				mp::for_each<Sequence>(remover);
 			}
-			else
-			{
-				if(old_bits.test(i))
-				{
-					tmp_keys[i] = old_keys[old_map[i]];
-				}
-			}
-		}
-
-		_component_remover remover = { _storage, tmp_keys };
-		mp::for_each<Sequence>(remover);
-
-		swap(new_keys, old_keys);
-
-		_finish_class_update(ek, updates);
-
+		);
 		return *this;
 	}
 
@@ -641,52 +557,16 @@ public:
 	 *  @post has_all_seq< Sequence >(ek)
 	 */
 	template <typename Sequence>
-	manager& replace_seq(entity_key ek, const Sequence& seq = Sequence())
+	manager& replace_seq(entity_key ek, const Sequence& seq)
 	{
-		auto updates = _begin_class_update(ek);
-
-		_component_bitset rep_bits = _get_bits(seq);
-		if((ek->second._component_bits & rep_bits) != rep_bits)
-		{
-			throw ::std::invalid_argument(
-				"exces::entity manager: "
-				"replacing components that "
-				"the entity does not have"
-			);
-		}
-
-		_component_bitset& new_bits = ek->second._component_bits;
-
-		_component_key_vector& new_keys = ek->second._component_keys;
-
-		const typename _component_index_map::index_vector
-			&new_map = _component_indices.get(new_bits);
-
-		const std::size_t cc = _component_count();
-		_component_key_vector tmp_keys(cc);
-
-		for(std::size_t i=0; i!=cc; ++i)
-		{
-			if(new_bits.test(i))
+		_do_rep_seq(
+			ek,
+			_get_bits(seq),
+			[&seq](_component_replacer& replacer)
 			{
-				tmp_keys[i] = new_keys[new_map[i]];
+				mp::for_each<Sequence>(seq, replacer);
 			}
-		}
-
-		_component_replacer replacer = { _storage, tmp_keys };
-		mp::for_each<Sequence>(replacer);
-
-		for(std::size_t i=0; i!=cc; ++i)
-		{
-			if(new_bits.test(i))
-			{
-				new_keys[new_map[i]] = tmp_keys[i];
-			}
-		}
-
-
-		_finish_class_update(ek, updates);
-
+		);
 		return *this;
 	}
 
@@ -751,7 +631,6 @@ public:
 		);
 	}
 
-
 	/// Copy the specified components between the specified entities
 	/**
 	 *  @see copy
@@ -764,35 +643,17 @@ public:
 	manager& copy_seq(
 		entity_key f,
 		entity_key t,
-		const Sequence& seq=Sequence()
+		const Sequence& seq = Sequence()
 	)
 	{
-		auto updates = _begin_class_update(t);
-
-		_entity_info& fei = f->second;
-		_entity_info& tei = t->second;
-
-		_component_bitset cpy_bits = _get_bits(seq);
-
-		tei._component_bits |= cpy_bits;
-		tei._component_keys.resize(tei._component_bits.count());
-
-		const typename _component_index_map::index_vector &src_map =
-			_component_indices.get(fei._component_bits);
-		const typename _component_index_map::index_vector &dst_map =
-			_component_indices.get(tei._component_bits);
-
-		_component_copier copier = {
-			_storage,
-			fei._component_keys,
-			tei._component_keys,
-			src_map,
-			dst_map
-		};
-		mp::for_each<Sequence>(copier);
-
-		_finish_class_update(t, updates);
-
+		_do_cpy_seq(
+			f, t,
+			_get_bits(seq),
+			[](_component_copier& copier)
+			{
+				mp::for_each<Sequence>(copier);
+			}
+		);
 		return *this;
 	}
 
@@ -808,7 +669,7 @@ public:
 	manager& copy_seq(
 		entity_type from,
 		entity_type to,
-		const Sequence&seq=Sequence()
+		const Sequence& seq = Sequence()
 	)
 	{
 		return copy_seq(_get_entity(from), _get_entity(to), seq);
@@ -1022,27 +883,19 @@ public:
 	template <typename Visitor>
 	struct _visitor_wrapper
 	{
-		_component_storage& _storage;
-		manager& _manager;
-		entity_key _key;
-		entity_type _entity;
 		Visitor& _visitor;
+		manager& _manager;
+		entity_key& _key;
 
 		template <typename Component>
 		void operator()(mp::identity<Component>) const
 		{
-			if(_manager.has<Component>(_entity))
+			if(_manager.has<Component>(_key))
 			{
-				typename _component_storage::component_key ck =
-					_manager._get_component_key<
-						Component
-					>(_key);
-
 				_visitor(
 					_manager,
 					_key,
-					_entity,
-					_storage.template access<Component>(ck)
+					_manager.template read<Component>(_key)
 				);
 			}
 		}
@@ -1055,23 +908,26 @@ public:
 			i = _entities.begin(),
 			e = _entities.end();
 
-		while(i != e)
+		if(i != e)
 		{
 			_visitor_wrapper<Visitor> vw = {
+				visitor,
 				_storage,
 				*this,
-				i,
-				i->first,
-				visitor
+				i
 			};
-			if(visitor(*this, i, i->first))
+			
+			while(i != e)
 			{
-				typedef typename components<Group>::type
-					component_seq;
-				mp::for_each<component_seq>(vw);
-				visitor();
+				if(visitor(*this, i))
+				{
+					typedef typename components<Group>::type
+						component_seq;
+					mp::for_each<component_seq>(vw);
+					visitor();
+				}
+				++i;
 			}
-			++i;
 		}
 		return *this;
 	}
