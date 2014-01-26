@@ -355,7 +355,7 @@ def print_bash_complete_script(argparser):
 	print('#  Automatically generated file. Do NOT modify manually,')
 	print('#  edit %(self)s instead' % {"self" : os.path.basename(sys.argv[0])})
 	print(str())
-	print('function _configure_exces()')
+	print('function _exces_config()')
 	print('{')
 	print('	COMPREPLY=()')
 	print('	local curr="${COMP_WORDS[COMP_CWORD]}"')
@@ -457,7 +457,7 @@ def print_bash_complete_script(argparser):
 	print(str())
 	print('	COMPREPLY=($(compgen -W "${opts}" -- "${curr}"))')
 	print('}')
-	print('complete -F _configure_exces ./configure-exces')
+	print('complete -F _exces_config ./exces-config')
 
 # the main function
 def main(argv):
