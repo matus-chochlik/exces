@@ -32,6 +32,9 @@ typedef ::exces::manager<> manager;
 /// The implicit manager type
 typedef ::exces::implicit_manager<> implicit_manager;
 
+/// The collection type
+typedef ::exces::collection<> collection;
+
 /// The classification template
 using ::exces::classification;
 
