@@ -13,6 +13,6 @@
 #include <exces/storage.inl>
 #include <exces/component.inl>
 #include <exces/manager.inl>
-#include <exces/classification.inl>
+#include <exces/collection.inl>
 
 #endif // include guard

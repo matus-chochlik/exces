@@ -15,7 +15,7 @@
 #include <exces/entity_filters.hpp>
 #include <exces/storage.hpp>
 #include <exces/component.hpp>
-#include <exces/classification.hpp>
+#include <exces/collection.hpp>
 
 #include <array>
 #include <vector>
@@ -303,14 +303,14 @@ private:
 	typename _entity_info_map::iterator
 	_find_entity(typename entity<Group>::type e);
 
-	std::vector<any_classification<Group>*> _classifications;
-	friend class any_classification<Group>;
+	std::vector<any_collection<Group>*> _collections;
+	friend class any_collection<Group>;
 
-	void add_classification(any_classification<Group>* cl);
-	void remove_classification(any_classification<Group>* cl);
-	void move_classification(
-		any_classification<Group>* old_cl,
-		any_classification<Group>* new_cl
+	void add_collection(any_collection<Group>* cl);
+	void remove_collection(any_collection<Group>* cl);
+	void move_collection(
+		any_collection<Group>* old_cl,
+		any_collection<Group>* new_cl
 	);
 
 	typedef std::vector<std::size_t> _class_update_key_list;

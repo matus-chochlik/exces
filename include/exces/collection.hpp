@@ -1,18 +1,19 @@
 /**
- *  @file exces/classification.hpp
- *  @brief Entity classification
+ *  @file exces/collection.hpp
+ *  @brief Entity collections and classifications
  *
  *  Copyright 2012-2014 Matus Chochlik. Distributed under the Boost
  *  Software License, Version 1.0. (See accompanying file
  *  LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
  */
 
-#ifndef EXCES_CLASSIFICATION_1304231127_HPP
-#define EXCES_CLASSIFICATION_1304231127_HPP
+#ifndef EXCES_COLLECTION_1304231127_HPP
+#define EXCES_COLLECTION_1304231127_HPP
 
 #include <exces/group.hpp>
 #include <exces/entity_range.hpp>
 #include <exces/entity_filters.hpp>
+#include <exces/entity_key_set.hpp>
 
 #include <map>
 #include <functional>
@@ -22,9 +23,9 @@ namespace exces {
 template <typename Group>
 class manager;
 
-/// Implementation of basic classsification entity traversal functions
+/// Implementation of basic entity collection traversal functions
 template <typename Group>
-class classif_entity_range
+class collect_entity_range
 {
 private:
 	typedef typename manager<Group>::entity_key entity_key;
@@ -32,7 +33,7 @@ private:
 	_iter _i;
 	const _iter _e;
 public:
-	classif_entity_range(_iter i, _iter e)
+	collect_entity_range(_iter i, _iter e)
 	 : _i(i)
 	 , _e(e)
 	{ }
@@ -58,12 +59,12 @@ public:
 	}
 };
 
-/// Base interface for entity classifications
+/// Base interface for entity collectionad and classifications
 /**
  *  @note do not use directly, use the derived classes instead.
  */
-template <typename Group = default_group>
-class any_classification
+template <typename Group>
+class any_collection
 {
 private:
 	friend class manager<Group>;
@@ -74,9 +75,9 @@ private:
 	update_key _cur_uk;
 	
 	virtual void insert(entity_key key) = 0;
+	virtual void remove(entity_key key) = 0;
 	virtual update_key begin_update(entity_key key) = 0;
 	virtual void finish_update(entity_key ekey, update_key) = 0;
-	virtual void remove(entity_key key) = 0;
 protected:
 	update_key _next_update_key(void);
 
@@ -84,16 +85,84 @@ protected:
 
 	void _register(void);
 
-	any_classification(manager<Group>& parent_manager)
+	any_collection(manager<Group>& parent_manager)
 	 : _pmanager(&parent_manager)
 	 , _cur_uk(0)
 	{ }
 public:
-	any_classification(const any_classification&) = delete;
+	any_collection(const any_collection&) = delete;
 
-	any_classification(any_classification&& tmp);
+	any_collection(any_collection&& tmp);
 
-	virtual ~any_classification(void);
+	virtual ~any_collection(void);
+};
+
+/// Entity collection
+/** Entity collection stores references to a subset of entities managed by
+ *  a manager, satisfying some predicate. For example all entities having
+ *  a specified set of components, etc.
+ *
+ *  @see classification
+ */
+template <typename Group = default_group>
+class collection
+ : public any_collection<Group>
+{
+private:
+	typedef any_collection<Group> _base;
+
+	std::function<
+		bool (
+			manager<Group>&,
+			typename manager<Group>::entity_key
+		)
+	> _filter_entity;
+
+	typedef entity_key_set<Group> _entity_key_set;
+	_entity_key_set _entities;
+
+	typedef typename manager<Group>::entity_key entity_key;
+	typedef std::size_t update_key;
+
+	void insert(entity_key key);
+	void remove(entity_key key);
+	update_key begin_update(entity_key key);
+	void finish_update(entity_key ekey, update_key);
+public:
+	static void _instantiate(void);
+
+	/// Constructs a new collection
+	/** The @p parent_manager must not be destroyed during the whole
+	 *  lifetime of the newly constructed collection.
+	 */ 
+	collection(
+		manager<Group>& parent_manager,
+		const std::function<
+			bool (manager<Group>&, entity_key)
+		>& entity_filter
+	): _base(parent_manager)
+	 , _filter_entity(entity_filter)
+	{
+		this->_register();
+	}
+
+	/// Collections are non-copyable
+	collection(const collection&) = delete;
+
+	/// Collections are movable
+	collection(collection&& tmp)
+	 : _base(static_cast<_base&&>(tmp))
+	 , _filter_entity(std::move(tmp._filter_entity))
+	 , _entities(std::move(tmp._entities))
+	{ }
+
+	/// Execute a @p function on each entity in the collection.
+	void for_each(
+		const std::function<void(
+			manager<Group>&,
+			typename manager<Group>::entity_key
+		)>& function
+	) const;
 };
 
 /// A template for entity classifications
@@ -112,15 +181,17 @@ public:
  *  A classification allows to enumerate entities belonging to a particular
  *  class.
  *
+ *  @see collection
+ *
  *  @tparam Class the type that is used to classify entities.
  *  @tparam Group the component group.
  */
 template <typename Class, typename Group = default_group>
 class classification
- : public any_classification<Group>
+ : public any_collection<Group>
 {
 private:
-	typedef any_classification<Group> _base;
+	typedef any_collection<Group> _base;
 
 	std::function<
 		bool (
@@ -138,10 +209,9 @@ private:
 
 	std::function<bool (Class)> _filter_class;
 
-	typedef std::vector<typename manager<Group>::entity_key>
-		_entity_key_vector;
+	typedef entity_key_set<Group> _entity_key_set;
 
-	typedef std::map<Class, _entity_key_vector> _class_map;
+	typedef std::map<Class, _entity_key_set> _class_map;
 	_class_map _classes;
 
 	typedef typename manager<Group>::entity_key entity_key;
@@ -194,7 +264,7 @@ private:
 public:
 	static void _instantiate(void);
 
-	/// Constructs a new instance
+	/// Constructs a new classification
 	/** The @p parent_manager must not be destroyed during the whole
 	 *  lifetime of the newly constructed classification. The classifier
 	 *  is used to divide entities of the manager into classes there is
@@ -216,7 +286,7 @@ public:
 		this->_register();
 	}
 
-	/// Constructs a new instance
+	/// Constructs a new classification
 	/** The @p parent_manager must not be destroyed during the whole
 	 *  lifetime of the newly constructed classification. The classifier
 	 *  is used to divide entities of the manager into classes and filter

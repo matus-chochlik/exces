@@ -32,16 +32,16 @@ _find_entity(typename entity<Group>::type e)
 template <typename Group>
 void
 manager<Group>::
-add_classification(any_classification<Group>* cl)
+add_collection(any_collection<Group>* cl)
 {
 	assert(cl != nullptr);
 	assert(std::find(
-		_classifications.begin(),
-		_classifications.end(),
+		_collections.begin(),
+		_collections.end(),
 		cl
-	) == _classifications.end());
+	) == _collections.end());
 
-	_classifications.push_back(cl);
+	_collections.push_back(cl);
 
 	typename _entity_info_map::iterator
 		i = _entities.begin(),
@@ -57,27 +57,27 @@ add_classification(any_classification<Group>* cl)
 template <typename Group>
 void
 manager<Group>::
-move_classification(
-	any_classification<Group>* old_cl,
-	any_classification<Group>* new_cl
+move_collection(
+	any_collection<Group>* old_cl,
+	any_collection<Group>* new_cl
 )
 {
 	assert(old_cl != nullptr);
 	assert(new_cl != nullptr);
 	assert(std::find(
-		_classifications.begin(),
-		_classifications.end(),
+		_collections.begin(),
+		_collections.end(),
 		old_cl
-	) != _classifications.end());
+	) != _collections.end());
 	assert(std::find(
-		_classifications.begin(),
-		_classifications.end(),
+		_collections.begin(),
+		_collections.end(),
 		new_cl
-	) == _classifications.end());
+	) == _collections.end());
 
 	std::replace(
-		_classifications.begin(),
-		_classifications.end(),
+		_collections.begin(),
+		_collections.end(),
 		old_cl,
 		new_cl
 	);
@@ -86,15 +86,15 @@ move_classification(
 template <typename Group>
 void
 manager<Group>::
-remove_classification(any_classification<Group>* cl)
+remove_collection(any_collection<Group>* cl)
 {
 	auto p = std::find(
-		_classifications.begin(),
-		_classifications.end(),
+		_collections.begin(),
+		_collections.end(),
 		cl
 	);
-	assert(p != _classifications.end());
-	_classifications.erase(p);
+	assert(p != _collections.end());
+	_collections.erase(p);
 }
 //------------------------------------------------------------------------------
 template <class Group>
@@ -104,15 +104,15 @@ _begin_class_update(
 	typename manager<Group>::_entity_info_map::iterator key
 )
 {
-	auto i = _classifications.begin();
-	auto e = _classifications.end();
+	auto i = _collections.begin();
+	auto e = _collections.end();
 
 	std::size_t j = 0;
-	_class_update_key_list result(_classifications.size());
+	_class_update_key_list result(_collections.size());
 
 	while(i != e)
 	{
-		any_classification<Group>* pc = *i;
+		any_collection<Group>* pc = *i;
 		assert(pc != nullptr);
 		result[j] = pc->begin_update(key);
 		++i;
@@ -130,16 +130,16 @@ _finish_class_update(
 	const typename manager<Group>::_class_update_key_list& update_keys
 )
 {
-	assert(_classifications.size() == update_keys.size());
+	assert(_collections.size() == update_keys.size());
 
-	auto i = _classifications.begin();
-	auto e = _classifications.end();
+	auto i = _collections.begin();
+	auto e = _collections.end();
 
 	auto u = update_keys.begin();
 
 	while(i != e)
 	{
-		any_classification<Group>* pc = *i;
+		any_collection<Group>* pc = *i;
 		assert(pc != nullptr);
 		pc->finish_update(key, *u);
 		++i;

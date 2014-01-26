@@ -1,6 +1,6 @@
 /**
- *  @file exces/classification.inl
- *  @brief Implements the classification functions
+ *  @file exces/collection.inl
+ *  @brief Implements the collection and classification functions
  *
  *  Copyright 2012-2014 Matus Chochlik. Distributed under the Boost
  *  Software License, Version 1.0. (See accompanying file
@@ -9,44 +9,44 @@
 
 namespace exces {
 //------------------------------------------------------------------------------
-// any_classification
+// any_collection
 //------------------------------------------------------------------------------
 template <typename Group>
 void
-any_classification<Group>::
+any_collection<Group>::
 _register(void)
 {
 	assert(_pmanager);
-	_pmanager->add_classification(this);
+	_pmanager->add_collection(this);
 }
 //------------------------------------------------------------------------------
 template <typename Group>
-any_classification<Group>::
-any_classification(any_classification&& tmp)
+any_collection<Group>::
+any_collection(any_collection&& tmp)
  : _pmanager(tmp.pmanager)
  , _cur_uk(tmp._cur_uk)
 {
 	if(_pmanager)
 	{
-		_pmanager->move_classification(&tmp, this);
+		_pmanager->move_collection(&tmp, this);
 		tmp._pmanager = nullptr;
 	}
 }
 //------------------------------------------------------------------------------
 template <typename Group>
-any_classification<Group>::
-~any_classification(void)
+any_collection<Group>::
+~any_collection(void)
 {
 	if(_pmanager != nullptr)
 	{
-		_pmanager->remove_classification(this);
+		_pmanager->remove_collection(this);
 	}
 }
 //------------------------------------------------------------------------------
 template <typename Group>
 inline
-typename any_classification<Group>::update_key
-any_classification<Group>::
+typename any_collection<Group>::update_key
+any_collection<Group>::
 _next_update_key(void)
 {
 	if(_cur_uk == 0) ++_cur_uk;
@@ -56,11 +56,93 @@ _next_update_key(void)
 template <typename Group>
 inline
 manager<Group>&
-any_classification<Group>::
+any_collection<Group>::
 _manager(void) const
 {
 	assert(_pmanager);
 	return *_pmanager;
+}
+//------------------------------------------------------------------------------
+// collection
+//------------------------------------------------------------------------------
+template <typename Group>
+void
+collection<Group>::
+insert(entity_key key)
+{
+	if(!_filter_entity || _filter_entity(this->_manager(), key))
+	{
+		assert(!_entities.contains(key));
+		_entities.insert(key);
+	}
+}
+//------------------------------------------------------------------------------
+template <typename Group>
+void
+collection<Group>::
+remove(entity_key key)
+{
+	assert(_entities.contains(key));
+	_entities.erase(key);
+}
+//------------------------------------------------------------------------------
+template <typename Group>
+typename collection<Group>::update_key
+collection<Group>::
+begin_update(entity_key)
+{
+	return 0;
+}
+//------------------------------------------------------------------------------
+template <typename Group>
+void
+collection<Group>::
+finish_update(entity_key ekey, update_key)
+{
+	if(!_filter_entity || _filter_entity(this->_manager(), ekey))
+	{
+		_entities.insert(ekey);
+	}
+	else
+	{
+		_entities.erase(ekey);
+	}
+}
+//------------------------------------------------------------------------------
+template <typename Group>
+void
+collection<Group>::
+for_each(
+	const std::function<void(
+		manager<Group>&,
+		typename manager<Group>::entity_key
+	)>& function
+) const
+{
+	typename _entity_key_set::const_iterator
+		i = _entities.begin(),
+		e = _entities.end();
+
+	while(i != e)
+	{
+		auto k = *i;
+		function(this->_manager(), *i);
+		++i;
+	}
+}
+//------------------------------------------------------------------------------
+template <typename Group>
+inline
+void
+collection<Group>::
+_instantiate(void)
+{
+	manager<Group> m;
+	std::function<bool (
+		manager<Group>&,
+		typename manager<Group>::entity_key
+	)> fi;
+	collection<Group> c(m, fi);
 }
 //------------------------------------------------------------------------------
 // classification
@@ -78,19 +160,13 @@ insert(entity_key key, Class entity_class)
 		_classes.insert(
 			typename _class_map::value_type(
 				entity_class,
-				_entity_key_vector(1, key)
+				_entity_key_set(key)
 			)
 		);
 	}
 	else
 	{
-		assert(std::find(
-			p->second.begin(),
-			p->second.end(),
-			key
-		) == p->second.end());
-
-		p->second.push_back(key);
+		p->second.insert(key);
 	}
 }
 //------------------------------------------------------------------------------
@@ -119,17 +195,7 @@ remove(entity_key key, Class entity_class)
 		_classes.find(entity_class);
 	
 	assert(cp != _classes.end());
-	// find its position
-	typename _entity_key_vector::iterator ep =
-		std::find(
-			cp->second.begin(),
-			cp->second.end(),
-			key
-		);
-	assert(ep != cp->second.end());
-	// erase it from the vector
-	// in its class
-	cp->second.erase(ep);
+	cp->second.erase(key);
 }
 //------------------------------------------------------------------------------
 template <typename Class, typename Group>
@@ -189,17 +255,9 @@ finish_update(entity_key ekey, update_key ukey)
 			// and it was classified differently
 			if(u->second->first != new_class)
 			{
-				// find its position
-				typename _entity_key_vector::iterator ep =
-					std::find(
-						u->second->second.begin(),
-						u->second->second.end(),
-						ekey
-					);
-				assert(ep != u->second->second.end());
 				// erase it from the vector
 				// in the old class
-				u->second->second.erase(ep);
+				u->second->second.erase(ekey);
 			}
 			// if its previous class was the same
 			// no need to reclassify
@@ -217,17 +275,9 @@ finish_update(entity_key ekey, update_key ukey)
 		// if the entity was previously classified
 		if(u != _updates.end())
 		{
-			// find its position
-			typename _entity_key_vector::iterator ep =
-				std::find(
-					u->second->second.begin(),
-					u->second->second.end(),
-					ekey
-				);
-			assert(ep != u->second->second.end());
 			// erase it from the vector
 			// in the old class
-			u->second->second.erase(ep);
+			u->second->second.erase(ekey);
 		}
 	}
 }
@@ -265,14 +315,14 @@ for_each(
 		_classes.find(entity_class);
 	if(p != _classes.end())
 	{
-		typename _entity_key_vector::const_iterator
+		typename _entity_key_set::const_iterator
 			i = p->second.begin(),
 			e = p->second.end();
 
 		while(i != e)
 		{
 			auto k = *i;
-			function(this->_manager(), k);
+			function(this->_manager(), *i);
 			++i;
 		}
 	}
