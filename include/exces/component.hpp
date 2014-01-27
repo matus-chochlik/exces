@@ -231,13 +231,16 @@ public:
 
 } // namespace aux
 
+struct shared_component_access_read_only { };
+struct shared_component_access_read_write { };
+
 /// Smart wraper for an instance of a component
 /** Instantiations of this template reference a single instance of a component
  *  of a specified entity. It allows the value to be read or chaned conveniently
  *  and ensures that the instance of the component remains valid even if it
  *  is removed from the entity.
  */
-template <typename Component, typename Group = default_group>
+template <typename Component, typename Group>
 class shared_component
  : public aux_::shared_component_base<
 	Component,
@@ -339,11 +342,19 @@ public:
 		return !is_valid();
 	}
 
+	typedef shared_component_access_read_only read_only;
+	typedef shared_component_access_read_write read_write;
+
 	/// Returns a const reference to the managed component
 	const Component& read(void) const
 	{
 		assert(is_valid());
 		return _pstorage->template access<Component>(_ckey);
+	}
+
+	const Component& access(read_only) const
+	{
+		return read();
 	}
 
 #if OALPLUS_DOCUMENTATION_ONLY
@@ -355,6 +366,17 @@ public:
 
 	/// Returns a reference that allows to change the managed component
 	component_ref write(void)
+	{
+		assert(is_valid());
+		return this->_make_component_ref(
+			_pmanager,
+			_ekey,
+			_pstorage,
+			_ckey
+		);
+	}
+
+	component_ref access(read_write)
 	{
 		assert(is_valid());
 		return this->_make_component_ref(
@@ -377,6 +399,73 @@ public:
 		);
 	}
 
+};
+
+template <typename MemVarType, typename Component, typename Group>
+class shared_component_mem_var
+{
+private:
+	typedef manager<Group> _manager;
+	typedef typename _manager::entity_key _entity_key;
+	typedef component_storage<Group> _storage;
+	typedef typename _storage::component_key component_key;
+
+	shared_component<Component, Group> _ref;
+	MemVarType Component::* _mvp;
+public:
+	shared_component_mem_var(
+		shared_component<Component, Group>&& ref,
+		MemVarType Component::* mvp
+	): _ref(std::move(ref))
+	 , _mvp(mvp)
+	{
+		assert(_mvp != nullptr);
+	}
+
+	shared_component_mem_var(const shared_component_mem_var& that)
+	 : _ref(that._ref)
+	 , _mvp(that._mvp)
+	{ }
+
+	shared_component_mem_var(shared_component_mem_var&& that)
+	 : _ref(std::move(that._ref))
+	 , _mvp(that._mvp)
+	{ }
+
+	const MemVarType& get(void) const
+	{
+		assert(_mvp != nullptr);
+		return _ref.read().*_mvp;
+	}
+
+	void set(const MemVarType& val)
+	{
+		assert(_mvp != nullptr);
+		_ref.write().*_mvp = val;
+	}
+
+	void set(MemVarType&& val)
+	{
+		assert(_mvp != nullptr);
+		_ref.write().*_mvp = std::move(val);
+	}
+
+	operator const MemVarType& (void) const
+	{
+		return get();
+	}
+
+	shared_component_mem_var& operator = (const MemVarType& val)
+	{
+		set(val);
+		return *this;
+	}
+
+	shared_component_mem_var& operator = (MemVarType&& val)
+	{
+		set(std::move(val));
+		return *this;
+	}
 };
 
 } // namespace exces

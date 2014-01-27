@@ -70,16 +70,20 @@ public:
 
 	/// Returns a reference to Component of the entity at front of the range
 	template <typename Component>
-	shared_component<Component> front_component(void) const
+	shared_component<Component, Group> ref(void) const
 	{
 		return _manager.template ref<Component>(BaseRange::front());
 	}
 
-	/// Returns a const reference to the specified component
-	template <typename Component>
-	const Component& read(void) const
+	/// Returns a reference to Component of the entity at front of the range
+	template <typename MemVarType, typename Component>
+	shared_component_mem_var<MemVarType, Component, Group>
+	mv(MemVarType Component::* mem_var_ptr) const
 	{
-		return _manager.template read<Component>(BaseRange::front());
+		return _manager.template mv<MemVarType, Component>(
+			BaseRange::front(),
+			mem_var_ptr
+		);
 	}
 
 	/// Moves the front of the range one element ahead

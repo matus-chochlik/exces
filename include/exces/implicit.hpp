@@ -145,25 +145,18 @@ public:
 		return _m().template ref<Component>(self());
 	}
 
-	/// Returns a read-only raw reference to the specifed Component
+	/// Returns a smart reference to the specified Component member variable
 	/**
 	 *  @pre this->has<Component>()
 	 */
-	template <typename Component>
-	const Component& read(void) const
+	template <typename MemVarType, typename Component>
+	shared_component_mem_var<MemVarType, Component, Group>
+	mv(MemVarType Component::* mem_var_ptr) const
 	{
-		return _m().template read<Component>(self());
-	}
-
-	/// Returns a mutable raw reference to the specifed Component
-	/**
-	 *  @pre this->has<Component>()
-	 */
-	template <typename Component>
-	typename shared_component<Component, Group>::component_ref
-	write(void) const
-	{
-		return _m().template write<Component>(self());
+		return _m().template mv<MemVarType, Component>(
+			self(),
+			mem_var_ptr
+		);
 	}
 
 	template <typename ... Components>

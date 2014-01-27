@@ -64,7 +64,7 @@ int main(void)
 		},
 		[](excess::manager& m, excess::manager::entity_key k) -> std::string
 		{
-			return m.read<name>(k);
+			return m.ref<name>(k).read();
 		}
 	);
 
@@ -73,11 +73,12 @@ int main(void)
 		std::cout << names[i] << ": ";
 		named.for_each(
 			names[i],
-			[](excess::manager& m, excess::manager::entity_key k)->void
-			{
-				if(m.has<surname>(k))
-					std::cout << m.read<surname>(k) << " ";
-			}
+			exces::adapt_func_cs<surname>(
+				[](const surname& the_surname) -> void
+				{
+					std::cout << the_surname << " ";
+				}
+			)
 		);
 		std::cout << std::endl;
 	}

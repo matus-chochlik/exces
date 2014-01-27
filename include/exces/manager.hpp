@@ -838,46 +838,37 @@ public:
 		return ref<Component>(_find_entity(e));
 	}
 
-	/// Returns a const reference to the component of the specified entity
+	/// Gets a shared reference to entity's component's member variable
 	/**
-	 *  @pre has<Component>(ek)
-	 */
-	template <typename Component>
-	const Component& read(entity_key ek)
-	{
-		return ref<Component>(ek).read();
-	}
-
-	/// Returns a const reference to the component of the specified entity
-	/**
+	 *  The manager that created this reference must not be destroyed
+	 *  while any copies of the reference are still valid. Then the
+	 *  instance of the referenced component remains valid even if
+	 *  if is removed from the entity.
+	 *
 	 *  @pre has<Component>(e)
 	 */
-	template <typename Component>
-	const Component& read(entity_type e)
+	template <typename MemVarType, typename Component>
+	shared_component_mem_var<MemVarType, Component, Group> mv(
+		entity_key key,
+		MemVarType Component::* mem_var_ptr
+	)
 	{
-		return read<Component>(_find_entity(e));
+		return shared_component_mem_var<MemVarType, Component, Group>(
+			ref<Component>(key),
+			mem_var_ptr
+		);
 	}
 
-	/// Returns a reference to the component of the specified entity
-	/**
-	 *  @pre has<Component>(ek)
-	 */
-	template <typename Component>
-	typename shared_component<Component, Group>::component_ref
-	write(entity_key ek)
+	template <typename MemVarType, typename Component>
+	shared_component_mem_var<MemVarType, Component, Group> mv(
+		entity_type e,
+		MemVarType Component::* mem_var_ptr
+	)
 	{
-		return ref<Component>(ek).write();
-	}
-
-	/// Returns a reference to the component of the specified entity
-	/**
-	 *  @pre has<Component>(e)
-	 */
-	template <typename Component>
-	typename shared_component<Component, Group>::component_ref
-	write(entity_type e)
-	{
-		return write<Component>(_find_entity(e));
+		return shared_component_mem_var<MemVarType, Component, Group>(
+			ref<Component>(e),
+			mem_var_ptr
+		);
 	}
 
 	template <typename Visitor>

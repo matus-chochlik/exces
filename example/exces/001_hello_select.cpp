@@ -51,8 +51,8 @@ int main(void)
 
 	for(auto r=m.select_with<greeting, location>(); !r.empty(); r.next())
 	{
-		std::cout << r.read<greeting>().str << " ";
-		std::cout << r.read<location>().str << "!";
+		std::cout << r.mv(&greeting::str).get() << " ";
+		std::cout << r.mv(&location::str).get() << "!";
 		std::cout << std::endl;
 	};
 

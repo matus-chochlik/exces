@@ -96,7 +96,7 @@ public:
 			auto r = _manager.select_with<contained>();
 			while(!r.empty())
 			{
-				if(r.front_component<contained>().read().container == e)
+				if(r.ref<contained>().read().container == e)
 					w += wc * get_weight(r.front());
 				r.next();
 			}
@@ -125,7 +125,7 @@ public:
 				auto r = _manager.select_with<contained>();
 				while(!r.empty())
 				{
-					if(r.front_component<contained>().read().container == e)
+					if(r.ref<contained>().read().container == e)
 						s += sc * get_size(r.front());
 					r.next();
 				}

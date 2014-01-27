@@ -42,42 +42,43 @@ int main(void)
 	const std::size_t ns = sizeof(surnames)/sizeof(surnames[0]);
 
 	const std::size_t n = 500;
-	std::vector<excess::entity> e(n);
 	excess::manager m;
+	excess::implicit_manager im(m);
+
+	std::vector<excess::implicit_entity> e(n);
 	m.reserve<name>(n);
 	m.reserve<surname>(n);
 
 	for(std::size_t i=0; i!=n; ++i)
 	{
-		m.add(
-			e[i],
+		e[i].add(
 			name(names[std::rand()%nn]),
 			surname(surnames[std::rand()%ns])
 		);
 	}
 
 	std::cout << "---------------------------" << std::endl;
-	std::cout << m.read<name>(e[0]) << " " << m.read<surname>(e[0]) << std::endl;
-	std::cout << m.read<name>(e[1]) << " " << m.read<surname>(e[1]) << std::endl;
+	std::cout << e[0].ref<name>().read() << " " << e[0].ref<surname>().read() << std::endl;
+	std::cout << e[1].ref<name>().read() << " " << e[1].ref<surname>().read() << std::endl;
 	std::cout << "---------------------------" << std::endl;
 	for(auto r=m.select_with<name, surname>(); !r.empty(); r.next())
 	{
-		std::cout << r.read<name>() << " ";
-		std::cout << r.read<surname>() << ".";
+		std::cout << r.ref<name>().read() << " ";
+		std::cout << r.ref<surname>().read() << ".";
 		std::cout << std::endl;
 	};
 
-	m.write<surname>(e[0]).append("-Doe");
-	m.ref<surname>(e[1]).replace("Roe");
+	e[0].ref<surname>().write().append("-Doe");
+	e[1].ref<surname>().replace("Roe");
 	std::cout << "---------------------------" << std::endl;
-	std::cout << m.read<name>(e[0]) << " " << m.read<surname>(e[0]) << std::endl;
-	std::cout << m.read<name>(e[1]) << " " << m.read<surname>(e[1]) << std::endl;
+	std::cout << e[0].ref<name>().read() << " " << e[0].ref<surname>().read() << std::endl;
+	std::cout << e[1].ref<name>().read() << " " << e[1].ref<surname>().read() << std::endl;
 	std::cout << "---------------------------" << std::endl;
 
 	for(auto r=m.select_with<name, surname>(); !r.empty(); r.next())
 	{
-		std::cout << r.read<name>() << " ";
-		std::cout << r.read<surname>() << ".";
+		std::cout << r.ref<name>().read() << " ";
+		std::cout << r.ref<surname>().read() << ".";
 		std::cout << std::endl;
 	};
 

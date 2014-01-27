@@ -256,7 +256,8 @@ private:
 		{
 			assert(mgr.template has<Component>(ekey));
 			return Class(
-				mgr.template read<Component>(ekey).*_mem_var_ptr
+				mgr.template ref<Component>(ekey)
+					.read().*_mem_var_ptr
 			);
 		}
 	};

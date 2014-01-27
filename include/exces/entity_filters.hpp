@@ -46,51 +46,13 @@ struct func_adaptor_base
 	{ };
 
 	template <typename C>
-	struct _wr
-	 : std::integral_constant<
-		bool,
+	struct _access
+	 : mp::if_c<
 		std::is_reference<C>::value &&
-		not(std::is_const<C>::value)
+		not(std::is_const<C>::value),
+		shared_component_access_read_write,
+		shared_component_access_read_only
 	>{ };
-
-	template <typename Component, typename Group>
-	static auto _do_get_c(
-		manager<Group>& man,
-		typename manager<Group>::entity_key key,
-		std::false_type /*write*/
-	) -> decltype( man.template read<Component>(key))
-	{
-		return man.template read<Component>(key);
-	}
-
-	template <typename Component, typename Group>
-	static auto _do_get_c(
-		manager<Group>& man,
-		typename manager<Group>::entity_key key,
-		std::true_type /*write*/
-	) -> decltype( man.template write<Component>(key))
-	{
-		return man.template write<Component>(key);
-	}
-
-	template <typename Component, typename Group>
-	static auto _get_c(
-		manager<Group>& man,
-		typename manager<Group>::entity_key key
-	) -> decltype(
-		_do_get_c<typename _fix<Component>::type>(
-			man,
-			key,
-			_wr<Component>()
-		)
-	)
-	{
-		return _do_get_c<typename _fix<Component>::type>(
-			man,
-			key,
-			_wr<Component>()
-		);
-	}
 };
 
 } // namespace aux_
@@ -100,7 +62,8 @@ struct func_adaptor_cs
  : aux_::func_adaptor_base
 {
 	typedef aux_::func_adaptor_base _base;
-	using _base::_get_c;
+	using _base::_fix;
+	using _base::_access;
 
 	Functor _functor;
 
@@ -116,7 +79,13 @@ struct func_adaptor_cs
 	{
 		if(m.template has_all<Components...>(k))
 		{
-			_functor(_get_c<Components>(m, k)...);
+			_functor(
+				m.template ref<
+					typename _fix<Components>::type
+				>(k).access(
+					typename _access<Components>::type()
+				)...
+			);
 		}
 	}
 };
@@ -134,7 +103,8 @@ struct func_adaptor_cmv
  : aux_::func_adaptor_base
 {
 	typedef aux_::func_adaptor_base _base;
-	using _base::_get_c;
+	using _base::_fix;
+	using _base::_access;
 
 	Functor _functor;
 	MemVarType Component::*_mem_var_ptr;
@@ -154,7 +124,13 @@ struct func_adaptor_cmv
 	{
 		if(m.template has<Component>(k))
 		{
-			_functor(_get_c<Component>(m, k).*_mem_var_ptr);
+			_functor(
+				m.template ref<
+					typename _fix<Component>::type
+				>(k).access(
+					typename _access<Component>::type()
+				)
+			);
 		}
 	}
 };
@@ -175,7 +151,8 @@ struct func_adaptor_mkc
  : aux_::func_adaptor_base
 {
 	typedef aux_::func_adaptor_base _base;
-	using _base::_get_c;
+	using _base::_fix;
+	using _base::_access;
 
 	Functor _functor;
 
@@ -191,7 +168,14 @@ struct func_adaptor_mkc
 	{
 		if(m.template has_all<Components...>(k))
 		{
-			_functor(m, k, _get_c<Components>(m, k)...);
+			_functor(
+				m, k,
+				m.template ref<
+					typename _fix<Components>::type
+				>(k).access(
+					typename _access<Components>::type()
+				)...
+			);
 		}
 	}
 };
@@ -236,7 +220,8 @@ struct func_adaptor_mkec
  : aux_::func_adaptor_base
 {
 	typedef aux_::func_adaptor_base _base;
-	using _base::_get_c;
+	using _base::_fix;
+	using _base::_access;
 
 	Functor _functor;
 
@@ -253,9 +238,12 @@ struct func_adaptor_mkec
 		if(m.template has_all<Components...>(k))
 		{
 			_functor(
-				m, k,
-				m.get_entity(k),
-				_get_c<Components>(m, k)...
+				m, k, m.get_entity(k),
+				m.template ref<
+					typename _fix<Components>::type
+				>(k).access(
+					typename _access<Components>::type()
+				)...
 			);
 		}
 	}
