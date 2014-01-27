@@ -73,7 +73,7 @@ int main(void)
 		std::cout << names[i] << ": ";
 		named.for_each(
 			names[i],
-			exces::adapt_func_cs<surname>(
+			exces::adapt_func_c<surname>(
 				[](const surname& the_surname) -> void
 				{
 					std::cout << the_surname << " ";

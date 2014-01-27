@@ -248,7 +248,7 @@ public:
 				std::cout << " contains { ";
 				contained_printer cp = { e };
 				// for each entity with the specified components
-				m.for_each(exces::adapt_func_cs<named&, contained&>(cp));
+				m.for_each(exces::adapt_func_c<named&, contained&>(cp));
 				std::cout << "}";
 			}
 			if(m.has<physical>(k))

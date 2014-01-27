@@ -42,6 +42,7 @@ int main(void)
 {
 	using exces::simple::entity;
 	using exces::simple::manager;
+	using exces::adapt_func;
 
 	std::vector<entity> e(4);
 	manager m;
@@ -51,12 +52,12 @@ int main(void)
 	m.add(e[2], greeting("Hi"), location("there"));
 	m.add(e[3], greeting("Yo"), name("Frankie"));
 
-	std::function<void (greeting&, location&)> func =
+	std::function<void (const greeting&, const location&)> func =
 		[](const greeting& g, const location& l) -> void
 		{
 			std::cout << g.str << " " << l.str << "!" << std::endl;
 		};
 
-	m.for_each(func);
+	m.for_each(adapt_func(func));
 	return 0;
 }

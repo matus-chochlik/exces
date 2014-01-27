@@ -58,7 +58,7 @@ struct func_adaptor_base
 } // namespace aux_
 
 template <typename Functor, typename ... Components>
-struct func_adaptor_cs
+struct func_adaptor_c
  : aux_::func_adaptor_base
 {
 	typedef aux_::func_adaptor_base _base;
@@ -67,7 +67,7 @@ struct func_adaptor_cs
 
 	Functor _functor;
 
-	func_adaptor_cs(const Functor& functor)
+	func_adaptor_c(const Functor& functor)
 	 : _functor(functor)
 	{ }
 
@@ -92,11 +92,20 @@ struct func_adaptor_cs
 
 template <typename ... Components, typename Functor>
 inline
-func_adaptor_cs<Functor, Components...>
-adapt_func_cs(const Functor& functor)
+func_adaptor_c<Functor, Components...>
+adapt_func_c(const Functor& functor)
 {
-	return func_adaptor_cs<Functor, Components...>(functor);
+	return func_adaptor_c<Functor, Components...>(functor);
 }
+
+template <typename ... Components>
+inline 
+func_adaptor_c<std::function<void(Components...)>, Components...>
+adapt_func(const std::function<void(Components...)>& functor)
+{
+	return adapt_func_c<Components...>(functor);
+}
+
 
 template <typename Functor, typename MemVarType, typename Component>
 struct func_adaptor_cmv
@@ -188,31 +197,24 @@ adapt_func_mkc(const Functor& functor)
 	return func_adaptor_mkc<Functor, Components...>(functor);
 }
 
-template <typename Functor>
-struct func_adaptor_mke
+template <typename Group, typename ... Components>
+inline 
+func_adaptor_mkc<
+	std::function<void(
+		manager<Group>&,
+		typename manager<Group>::entity_key,
+		Components...
+	)>,
+	Components...
+> adapt_func(
+	const std::function<void(
+		manager<Group>&,
+		typename manager<Group>::entity_key,
+		Components...
+	)>& functor
+)
 {
-	Functor _functor;
-
-	func_adaptor_mke(const Functor& functor)
-	 : _functor(functor)
-	{ }
-
-	template <typename Group>
-	void operator()(
-		manager<Group>& m,
-		typename manager<Group>::entity_key k
-	)
-	{
-		_functor(m, k, m.get_entity(k));
-	}
-};
-
-template <typename Functor>
-inline
-func_adaptor_mke<Functor>
-adapt_func_mke(const Functor& functor)
-{
-	return func_adaptor_mke<Functor>(functor);
+	return adapt_func_mkc<Components...>(functor);
 }
 
 template <typename Functor, typename ... Components>
@@ -255,6 +257,28 @@ func_adaptor_mkec<Functor, Components...>
 adapt_func_mkec(const Functor& functor)
 {
 	return func_adaptor_mkec<Functor, Components...>(functor);
+}
+
+template <typename Group, typename ... Components>
+inline 
+func_adaptor_mkc<
+	std::function<void(
+		manager<Group>&,
+		typename manager<Group>::entity_key,
+		typename entity<Group>::type,
+		Components...
+	)>,
+	Components...
+> adapt_func(
+	const std::function<void(
+		manager<Group>&,
+		typename manager<Group>::entity_key,
+		typename entity<Group>::type,
+		Components...
+	)>& functor
+)
+{
+	return adapt_func_mkec<Components...>(functor);
 }
 
 } // namespace exces

@@ -923,6 +923,30 @@ public:
 		return *this;
 	}
 
+	/// Calls the specified function on the specified entity
+	manager& apply(
+		entity_key key,
+		const std::function<void (
+			manager&,
+			entity_key
+		)>& function
+	)
+	{
+		function(*this, key);
+	}
+
+	/// Calls the specified function on the specified entity
+	manager& apply(
+		entity_type e,
+		const std::function<void (
+			manager&,
+			entity_key
+		)>& function
+	)
+	{
+		function(*this, _find_entity(e));
+	}
+
 	/// Calls the specified function on each entity
 	manager& for_each(
 		const std::function<void (
@@ -930,40 +954,6 @@ public:
 			entity_key
 		)>& function
 	);
-
-	/// Calls a function on each entity having the specified Components
-	template <typename ... Components>
-	manager& for_each(
-		const std::function<void (
-			manager&,
-			entity_key,
-			entity_type,
-			Components ...
-		)>& function
-	)
-	{
-		return for_each(adapt_func_mkec<Components...>(function));
-	}
-
-	/// Calls a function on each entity having the specified Components
-	template <typename ... Components>
-	manager& for_each(
-		const std::function<void (
-			manager&,
-			entity_type,
-			Components ...
-		)>& function
-	)
-	{
-		return for_each(adapt_func_mkc<Components...>(function));
-	}
-
-	/// Calls a function on each entity having the specified Components
-	template <typename ... Components>
-	manager& for_each(const std::function<void (Components ...)>& function)
-	{
-		return for_each(adapt_func_cs<Components...>(function));
-	}
 
 	/// The entity range type
 	typedef entity_range_tpl<
