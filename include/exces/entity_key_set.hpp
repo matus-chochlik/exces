@@ -38,6 +38,11 @@ public:
 	 : _keys(1, key)
 	{ }
 
+	std::size_t size(void) const
+	{
+		return _keys.size();
+	}
+
 	bool contains(entity_key key)
 	{
 		auto p = std::lower_bound(
