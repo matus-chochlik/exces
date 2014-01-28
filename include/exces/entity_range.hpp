@@ -68,6 +68,21 @@ public:
 		return _manager.template has<Component>(BaseRange::front());
 	}
 
+	/// Returns a raw reference to the specified Component
+	/** 
+	 *  @pre this->has<Component>()
+	 *
+	 *  @warning This function is not thread safe, see the documentation
+	 *  for the manager's raw_access function.
+	 *
+	 *  @see manager<Group>::raw_access
+	 */
+	template <typename Component>
+	Component& rw(void) const
+	{
+		return _manager.template rw<Component>(BaseRange::front());
+	}
+
 	/// Returns a reference to Component of the entity at front of the range
 	template <typename Component>
 	shared_component<Component, Group> ref(void) const

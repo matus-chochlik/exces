@@ -64,7 +64,7 @@ int main(void)
 		},
 		[](excess::manager& m, excess::manager::entity_key k) -> std::string
 		{
-			return m.ref<name>(k).read();
+			return m.rw<name>(k);
 		}
 	);
 

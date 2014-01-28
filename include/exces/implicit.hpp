@@ -135,6 +135,21 @@ public:
 		return _m().template has_some<Components...>(self());
 	}
 
+	/// Returns a raw reference to the specified Component
+	/** 
+	 *  @pre this->has<Component>()
+	 *
+	 *  @warning This function is not thread safe, see the documentation
+	 *  for the manager's raw_access function.
+	 *
+	 *  @see manager<Group>::raw_access
+	 */
+	template <typename Component>
+	Component& rw(void) const
+	{
+		return _m().template rw<Component>(self());
+	}
+
 	/// Returns a smart reference to the specified Component
 	/**
 	 *  @pre this->has<Component>()

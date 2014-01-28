@@ -36,25 +36,9 @@ struct entity_with
  : entity_with_seq<mp::typelist<Components...>>
 { };
 
-namespace aux_ {
-
-struct func_adaptor_base
-{
-	template <typename C>
-	struct _fix
-	 : std::remove_cv<typename std::remove_reference<C>::type>
-	{ };
-};
-
-} // namespace aux_
-
 template <typename Functor, typename ... Components>
 struct func_adaptor_c
- : aux_::func_adaptor_base
 {
-	typedef aux_::func_adaptor_base _base;
-	using _base::_fix;
-
 	Functor _functor;
 
 	func_adaptor_c(const Functor& functor)
@@ -69,13 +53,7 @@ struct func_adaptor_c
 	{
 		if(m.template has_all<Components...>(k))
 		{
-			_functor(
-				m.template ref<
-					typename _fix<Components>::type
-				>(k).access(
-					get_component_access<Components>()
-				)...
-			);
+			_functor(m.template raw_access<Components>(k)...);
 		}
 	}
 };
@@ -99,11 +77,7 @@ adapt_func(const std::function<void(Components...)>& functor)
 
 template <typename Functor, typename MemVarType, typename Component>
 struct func_adaptor_cmv
- : aux_::func_adaptor_base
 {
-	typedef aux_::func_adaptor_base _base;
-	using _base::_fix;
-
 	Functor _functor;
 	MemVarType Component::*_mem_var_ptr;
 
@@ -123,11 +97,8 @@ struct func_adaptor_cmv
 		if(m.template has<Component>(k))
 		{
 			_functor(
-				m.template ref<
-					typename _fix<Component>::type
-				>(k).access(
-					get_component_access<Component>()
-				)
+				m.template raw_access<Component>(k)
+					.*_mem_var_ptr
 			);
 		}
 	}
@@ -146,11 +117,7 @@ adapt_func_cmv(MemVarType Component::*mem_var_ptr, const Functor& functor)
 
 template <typename Functor, typename ... Components>
 struct func_adaptor_mkc
- : aux_::func_adaptor_base
 {
-	typedef aux_::func_adaptor_base _base;
-	using _base::_fix;
-
 	Functor _functor;
 
 	func_adaptor_mkc(const Functor& functor)
@@ -167,11 +134,7 @@ struct func_adaptor_mkc
 		{
 			_functor(
 				m, k,
-				m.template ref<
-					typename _fix<Components>::type
-				>(k).access(
-					get_component_access<Components>()
-				)...
+				m.template raw_access<Components>(k)...
 			);
 		}
 	}
@@ -207,11 +170,7 @@ func_adaptor_mkc<
 
 template <typename Functor, typename ... Components>
 struct func_adaptor_mkec
- : aux_::func_adaptor_base
 {
-	typedef aux_::func_adaptor_base _base;
-	using _base::_fix;
-
 	Functor _functor;
 
 	func_adaptor_mkec(const Functor& functor)
@@ -228,11 +187,7 @@ struct func_adaptor_mkec
 		{
 			_functor(
 				m, k, m.get_entity(k),
-				m.template ref<
-					typename _fix<Components>::type
-				>(k).access(
-					get_component_access<Components>()
-				)...
+				m.template raw_access<Components>(k)...
 			);
 		}
 	}

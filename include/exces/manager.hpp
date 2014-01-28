@@ -79,9 +79,13 @@ private:
 	// metafunction removing type decorations from component typenames
 	template <typename ... C>
 	struct _fixn
-	{
-		typedef mp::typelist<typename _fix1<C>::type...> type;
-	};
+	 : mp::typelist<typename _fix1<C>::type...>
+	{ };
+
+	template <typename ... C>
+	struct _sortn
+	 : aux_::sort_components<Group, mp::typelist<C...>>
+	{ };
 
 	// component storage
 	typedef component_storage<Group> _component_storage;
@@ -161,8 +165,12 @@ private:
 
 	// gets the bitset for the specified components
 	template <typename Sequence>
-	static const _component_bitset& _get_bits(const Sequence& seq)
+	static const _component_bitset& _get_bits(const Sequence&)
 	{
+		typename aux_::sort_components<
+			Group,
+			typename mp::as_typelist<Sequence>::type
+		>::type seq;
 		static _component_bitset _bits = _gen_bits(seq);
 		return _bits;
 	}
@@ -790,6 +798,25 @@ public:
 		return has_some_seq(e, typename _fixn<Components...>::type());
 	}
 
+	/// Creates an unlocked Lockable managing Component lifetime
+	/** This function returns an instance of type conforming to Lockable
+	 *  concept which can be used to prevent component instances from
+	 *  being destroyed immediately after they are removed from an entity
+	 *  (for example from another thread).
+	 *  Component instances are reference counted and are kept alive when
+	 *  they are assigned to an entity or if a shared reference to the
+	 *  component instance exists.
+	 *  If there are no shared references and a component is removed from
+	 *  the entity it is destroyed unless a lifetime lock is locked on
+	 *  the specified component type. In such case the components are
+	 *  destroyed only after all lifetime locks are unlocked.
+	 *
+	 *  @note The resulting Lockable is unlocked when returned and must
+	 *  be locked and unlocked explicitly by the caller.
+	 *
+	 *  @see raw_access_lock
+	 *  @see raw_access
+	 */
 	template <typename ... C>
 	group_lock<typename mp::instead<C, poly_lock>::type...>
 	lifetime_lock(void)
@@ -800,7 +827,7 @@ public:
 	}
 
 	template <typename ... C>
-	auto raw_access_lock(void) -> decltype(
+	auto raw_access_lock_tl(mp::typelist<C...>) -> decltype(
 		make_group_lock(
 			_storage.template access_lock<typename _fix1<C>::type>(
 				get_component_access<typename _fix1<C>::type>()
@@ -815,30 +842,133 @@ public:
 		);
 	}
 
+	/// Creates an unlocked Lockable that can be used to sync raw access
+	/** This function returns an instance of type conforming to Lockable
+	 *  concept that can be used to ensure safe access to the specified
+	 *  Components from a thread.
+	 *
+	 *  Either shared access for read-only operations or exclusive access
+	 *  for modifying operations to multiple components may be requested.
+	 *  Shared access is obtainied by specifying plain Component type name,
+	 *  exclusive access is obtained by specifying a reference-to-Component
+	 *  type name.
+	 *  Multiple threads having shared access can safely read the values
+	 *  of the components, a thread having exclusive access can safely
+	 *  modify the values of the components provided that locks are obtained
+	 *  consistently from all threads and properly used.
+	 *
+	 *  Regardless in what order the Components were specified, this function
+	 *  orders them by their static unique component ids and the individual
+	 *  component locks are obtained using a deadlock-preventing algorithm.
+	 *  The deadlock prevention however works only if all accessed components
+	 *  are locked together.
+	 *
+	 *  @note The resulting Lockable is unlocked when returned and must
+	 *  be locked and unlocked explicitly by the caller.
+	 *
+	 *  @see lifetime_lock
+	 *  @see raw_access
+	 */
+	template <typename ... Components>
+	auto raw_access_lock(void) -> decltype(
+		std::declval<manager>().raw_access_lock_tl(
+			typename _sortn<Components...>::type()
+		)
+	)
+	{
+		return raw_access_lock_tl(
+			typename _sortn<Components...>::type()
+		);
+	}
+
+	/// Gets a reference to the specified Component of the specified entity
+	/** This function provides direct access to the a component of the
+	 *  specified type of the specified entity. If the entity does not
+	 *  have the specified Component then the result of calling this
+	 *  function are undefined and will likely lead to program termination.
+	 *
+	 *  @pre has<Component>(ek);
+	 *
+	 *  @warning This function may be safely used in single-threaded
+	 *  applications to get access to a Component of an entity.
+	 *  In multi-threaded programs when accessing components by using
+	 *  raw_access, a lifetime lock and a raw access lock must be obtained
+	 *  and locked to prevent other threads from removing the accessed
+	 *  component from the entity and to prevent them from modifying it.
+	 *  For example:
+	 *
+	 *  @code
+	 *  manager<> m;
+	 *  std::vector<entity<>::type> entities(n);
+	 *
+	 *  auto lt_lock = m.lifetime_lock<Component1, Component2>();
+	 *  auto ra_lock = m.raw_access_lock<Component1&, Comoponent2>();
+	 *
+	 *  for(auto& e: entities)
+	 *  {
+	 *      auto value = examine_c2(m.raw_access<Component2>());
+	 *      modify_c1(m.raw_access<Component1>(), value);
+	 *  }
+	 *  @endcode
+	 *
+	 *  @see lifetime_lock
+	 *  @see raw_access_lock
+	 *  @see ref
+	 */
 	template <typename Component>
 	Component& raw_access(entity_key ek)
 	{
-		std::size_t cid = component_id<Component, Group>::value;
+		typedef typename _fix1<Component>::type _fixed_C;
+		std::size_t cid = component_id<_fixed_C, Group>::value;
 		typename _component_storage::component_key key;
 		assert(ek->second._component_bits.test(cid));
 
-		typename component_index<Component>::type cidx =
+		typename component_index<_fixed_C>::type cidx =
 			_component_indices.get(
 				ek->second._component_bits
 			)[cid];
 
 		key = ek->second._component_keys[cidx];
-		return _storage.template access<Component>(key);
+		return _storage.template access<_fixed_C>(key);
 	}
 
-	/// Gets a shared reference to entity's component
+	/// Equivalent to raw_access<Component>(ek);
+	/** @warning Read the documentation for raw_access before using
+	 *  this function.
+	 *
+	 *  @see lifetime_lock
+	 *  @see raw_access_lock
+	 *  @see raw_access
+	 *  @see ref
+	 */ 
+	template <typename Component>
+	Component& rw(entity_key ek)
+	{
+		return raw_access<Component>(ek);
+	}
+
+	template <typename Component>
+	Component& rw(entity_type e)
+	{
+		return raw_access<Component>(_find_entity(e));
+	}
+
+	/// Gets a thread-safe shared reference to entity's component
 	/**
 	 *  The manager that created this reference must not be destroyed
 	 *  while any copies of the reference are still valid. Then the
 	 *  instance of the referenced component remains valid even if
 	 *  if is removed from the entity.
 	 *
+	 *  @note When executing the same operation accessing entity components
+	 *  on multiple entities, it is much more efficient obtain the lifetime
+	 *  and raw-access locks and use the raw_access member function instead.
+	 *
 	 *  @pre has<Component>(ek)
+	 *
+	 *  @see lifetime_lock
+	 *  @see raw_access_lock
+	 *  @see raw_access
 	 */
 	template <typename Component>
 	shared_component<Component, Group> ref(entity_key ek)
@@ -868,7 +998,7 @@ public:
 		);
 	}
 
-	/// Gets a shared reference to entity's component
+	/// Gets a thread-safe shared reference to entity's component
 	/**
 	 *  The manager that created this reference must not be destroyed
 	 *  while any copies of the reference are still valid. Then the
@@ -904,6 +1034,7 @@ public:
 		);
 	}
 
+	/// Gets a shared reference to entity's component's member variable
 	template <typename MemVarType, typename Component>
 	shared_component_mem_var<MemVarType, Component, Group> mv(
 		entity_type e,

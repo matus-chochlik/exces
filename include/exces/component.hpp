@@ -26,6 +26,24 @@ class manager;
 
 namespace aux_ {
 
+template <typename Group>
+struct component_less_mf
+{
+	template <typename C1, typename C2>
+	struct apply
+	 : mp::integral_constant<
+		bool, (
+			component_id<C1, Group>::value<
+			component_id<C2, Group>::value
+		)
+	>{ };
+};
+
+template <typename Group, typename Components>
+struct sort_components
+ : mp::sort<Components, component_less_mf<Group>>
+{ };
+
 // less than comparison for bitsets smaller than uint
 struct component_bitset_less_small
 {

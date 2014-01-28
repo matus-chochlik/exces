@@ -20,19 +20,29 @@ using std::get;
 using std::tuple;
 using std::make_tuple;
 using std::tie;
+using std::integral_constant;
 
+// nil type
+struct nil
+{
+	typedef nil type;
+};
+
+// identity type
 template <typename T>
 struct identity
 {
 	typedef T type;
 };
 
+// size_t
 template <std::size_t I>
-struct size_t_ : ::std::integral_constant<std::size_t, I>
+struct size_t_ : integral_constant<std::size_t, I>
 {
 	typedef size_t_ type;
 };
 
+// if
 template <bool, typename True, typename False>
 struct if_c
 {
@@ -45,6 +55,7 @@ struct if_c<false, True, False>
 	typedef False type;
 };
 
+// type list
 template <typename ... T>
 struct typelist
 {
@@ -87,6 +98,59 @@ struct transform<typelist<T...>, UnaryMFC>
 	typename UnaryMFC::template apply<T>::type ...
 > { };
 
+// binary search tree
+template <typename Left, typename Data, typename Right>
+struct typetree
+{
+	typedef typetree<Left, Data, Right> type;
+};
+
+// insert
+template <typename Tree, typename Elem, typename Cmp>
+struct insert;
+
+template <typename E, typename Cmp>
+struct insert<nil, E, Cmp>
+ : typetree<nil, E, nil>
+{ };
+
+template <typename L, typename D, typename R, typename E, typename Cmp>
+struct insert<typetree<L, D, R>, E, Cmp>
+ : if_c<
+	Cmp::template apply<E, D>::value,
+	typetree<typename insert<L, E, Cmp>::type, D, R>,
+	typetree<L, D, typename insert<R, E, Cmp>::type>
+>{ };
+
+// list2tree
+template <typename List, typename Tree, typename Cmp>
+struct list2tree;
+
+template <typename Tree, typename Cmp>
+struct list2tree<typelist<>, Tree, Cmp>
+ : Tree
+{ };
+
+template <typename H, typename ... T, typename Tree, typename Cmp>
+struct list2tree<typelist<H, T...>, Tree, Cmp>
+ : list2tree<typelist<T...>, typename insert<Tree, H, Cmp>::type, Cmp>
+{ };
+
+// tree2list
+template <typename Tree, typename List>
+struct tree2list;
+
+template <typename List>
+struct tree2list<nil, List>
+ : List
+{ };
+
+template <typename L, typename D, typename R, typename List>
+struct tree2list<typetree<L, D, R>, List>
+ : tree2list<R, typename push_back<typename tree2list<L, List>::type, D>::type>
+{ };
+
+// conversions
 template <typename Sequence>
 struct as_tuple
  : as_tuple<typename Sequence::type>
@@ -95,6 +159,11 @@ struct as_tuple
 template <typename Sequence>
 struct as_typelist
  : as_typelist<typename Sequence::type>
+{ };
+
+template <>
+struct as_typelist<nil>
+ : typelist<>
 { };
 
 template <typename ... T>
@@ -121,6 +190,26 @@ struct as_typelist<tuple<T...> >
 	typedef typelist<T...> type;
 };
 
+template <typename L, typename D, typename R>
+struct as_typelist<typetree<L, D, R>>
+ : tree2list<typetree<L, D, R>, typelist<>>
+{ };
+
+template <typename Typelist, typename Cmp>
+struct as_typetree
+ : list2tree<Typelist, nil, Cmp>
+{ };
+
+// sort
+template <typename Sequence, typename Cmp>
+struct sort;
+
+template <typename ... T, typename Cmp>
+struct sort<typelist<T...>, Cmp>
+ : as_typelist<as_typetree<typelist<T...>, Cmp>>
+{ };
+
+// for-each
 template <typename Func, template <class...> class Seq>
 inline void _for_each_typ(Func& func, Seq<>*) { }
 
@@ -176,12 +265,15 @@ inline void for_each(Tuple& tup, Func func)
 	);
 };
 
+
+// sequence of integers
 template <std::size_t ... S>
 struct n_seq
 {
 	typedef n_seq type;
 };
 
+// generator of interger sequence
 template <std::size_t N, std::size_t ... S>
 struct gen_seq : gen_seq<N-1, N-1, S...>
 { };

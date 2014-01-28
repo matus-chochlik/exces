@@ -58,27 +58,27 @@ int main(void)
 	}
 
 	std::cout << "---------------------------" << std::endl;
-	std::cout << e[0].ref<name>().read() << " " << e[0].ref<surname>().read() << std::endl;
-	std::cout << e[1].ref<name>().read() << " " << e[1].ref<surname>().read() << std::endl;
+	std::cout << e[0].rw<name>() << " " << e[0].rw<surname>() << std::endl;
+	std::cout << e[1].rw<name>() << " " << e[1].rw<surname>() << std::endl;
 	std::cout << "---------------------------" << std::endl;
 	for(auto r=m.select_with<name, surname>(); !r.empty(); r.next())
 	{
-		std::cout << r.ref<name>().read() << " ";
-		std::cout << r.ref<surname>().read() << ".";
+		std::cout << r.rw<name>() << " ";
+		std::cout << r.rw<surname>() << ".";
 		std::cout << std::endl;
 	};
 
-	e[0].ref<surname>().write().append("-Doe");
+	e[0].rw<surname>().append("-Doe");
 	e[1].ref<surname>().replace("Roe");
 	std::cout << "---------------------------" << std::endl;
-	std::cout << e[0].ref<name>().read() << " " << e[0].ref<surname>().read() << std::endl;
-	std::cout << e[1].ref<name>().read() << " " << e[1].ref<surname>().read() << std::endl;
+	std::cout << e[0].rw<name>() << " " << e[0].rw<surname>() << std::endl;
+	std::cout << e[1].rw<name>() << " " << e[1].rw<surname>() << std::endl;
 	std::cout << "---------------------------" << std::endl;
 
 	for(auto r=m.select_with<name, surname>(); !r.empty(); r.next())
 	{
-		std::cout << r.ref<name>().read() << " ";
-		std::cout << r.ref<surname>().read() << ".";
+		std::cout << r.rw<name>() << " ";
+		std::cout << r.rw<surname>() << ".";
 		std::cout << std::endl;
 	};
 
