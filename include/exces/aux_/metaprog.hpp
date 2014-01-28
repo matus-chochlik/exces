@@ -176,6 +176,27 @@ inline void for_each(Tuple& tup, Func func)
 	);
 };
 
+template <std::size_t ... S>
+struct n_seq
+{
+	typedef n_seq type;
+};
+
+template <std::size_t N, std::size_t ... S>
+struct gen_seq : gen_seq<N-1, N-1, S...>
+{ };
+
+template <std::size_t ... S>
+struct gen_seq<0, S...>
+ : n_seq<S...>
+{ };
+
+template <typename OldT, typename NewT>
+struct instead
+{
+	typedef NewT type;
+};
+
 } // namespace mp
 } // namespac exces
 

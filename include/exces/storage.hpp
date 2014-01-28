@@ -11,19 +11,46 @@
 #define EXCES_STORAGE_1212101457_HPP
 
 #include <exces/group.hpp>
+#include <exces/threads.hpp>
 #include <exces/metaprog.hpp>
 
 #include <cassert>
 
 namespace exces {
 
-// Interface for component storage vectors of component_storage
+struct component_access_read_only { };
+struct component_access_read_write { };
+
 template <typename Component>
-struct component_storage_vector
+inline typename mp::if_c<
+	std::is_reference<Component>::value &&
+	not(std::is_const<Component>::value),
+	component_access_read_write,
+	component_access_read_only
+>::type get_component_access(void)
 {
+	return typename mp::if_c<
+		std::is_reference<Component>::value &&
+		not(std::is_const<Component>::value),
+		component_access_read_write,
+		component_access_read_only
+	>::type();
+}
+ 
+// Interface for component storage vectors of component_storage
+template <typename Group, typename Component>
+struct component_storage_vector : lock_intf
+{
+	typedef component_locking<Group, Component> locking;
+	typedef typename locking::shared_lock shared_lock;
+	typedef typename locking::unique_lock unique_lock;
+
 	typedef std::size_t component_key;
 
 	virtual ~component_storage_vector(void){ }
+
+	virtual shared_lock read_lock(void) = 0;
+	virtual unique_lock write_lock(void) = 0;
 
 	virtual Component& at(component_key) = 0;
 
@@ -36,7 +63,6 @@ struct component_storage_vector
 	virtual component_key copy(component_key) = 0;
 
 	virtual void add_ref(component_key) = 0;
-
 	virtual bool release(component_key) = 0;
 };
 
@@ -56,6 +82,7 @@ private:
 		struct apply
 		{
 			typedef component_storage_vector<
+				Group,
 				typename std::remove_reference<C>::type
 			>* type;
 		};
@@ -74,9 +101,9 @@ private:
 	friend struct component_storage_cleanup<Group>;
 
 	template <typename Component>
-	component_storage_vector<Component>& _store_of(void)
+	component_storage_vector<Group, Component>& _store_of(void)
 	{
-		component_storage_vector<Component>* _pcsv = mp::get<
+		component_storage_vector<Group, Component>* _pcsv = mp::get<
 			component_id<Component, Group>::value>(_store);
 		assert(_pcsv != nullptr);
 		return *_pcsv;
@@ -93,6 +120,49 @@ public:
 	static component_key null_key(void)
 	{
 		return component_key(-1);
+	}
+
+	/// Returns an unlocked shared lock postponing cleanup of components
+	template <typename Component>
+	poly_lock lifetime_lock(void)
+	{
+		return poly_lock(&_store_of<Component>());
+	}
+
+	/// Returns an unlocked shared lock for read-only operations on Component
+	template <typename Component>
+	typename component_locking<Group, Component>::shared_lock
+	read_lock(component_key = null_key())
+	{
+		return _store_of<Component>()
+			.read_lock();
+	}
+
+	/// Same as read_lock(key)
+	template <typename Component>
+	typename component_locking<Group, Component>::shared_lock
+	access_lock(component_access_read_only, component_key = null_key())
+	{
+		return _store_of<Component>()
+			.read_lock();
+	}
+
+	/// Returns an unlocked unique lock for read/write operations on Component
+	template <typename Component>
+	typename component_locking<Group, Component>::unique_lock
+	write_lock(component_key = null_key())
+	{
+		return _store_of<Component>()
+			.write_lock();
+	}
+
+	/// Same as write lock
+	template <typename Component>
+	typename component_locking<Group, Component>::unique_lock
+	access_lock(component_access_read_write, component_key = null_key())
+	{
+		return _store_of<Component>()
+			.write_lock();
 	}
 
 	/// Reserves space for n instances of Component

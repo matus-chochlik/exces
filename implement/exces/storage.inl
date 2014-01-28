@@ -32,21 +32,43 @@ struct component_storage_entry
 //------------------------------------------------------------------------------
 // heavyweight_storage_vector
 //------------------------------------------------------------------------------
-template <typename Component>
+template <typename Group, typename Component>
 class heavyweight_storage_vector
- : public component_storage_vector<Component>
+ : public component_storage_vector<Group, Component>
 {
-private:
-	typedef component_storage_entry<Component> _component_entry;
-
-	std::vector<component_storage_entry<Component> > _ents;
-	int _next_free;
 public:
 	typedef std::size_t component_key;
+private:
+	std::vector<component_storage_entry<Component> > _ents;
+	std::vector<component_key> _gc_keys;
+	int _next_free;
+	int _vector_refs;
+
+	typedef component_locking<Group, Component> locking;
+	typedef typename locking::shared_lock shared_lock;
+	typedef typename locking::unique_lock unique_lock;
+
+	typedef typename locking::shared_mutex _mutex;
+	typedef typename locking::template lock_guard<_mutex> _mutex_guard;
+
+	_mutex _mod_mutex;
+	_mutex _acc_mutex;
+public:
 
 	heavyweight_storage_vector(void)
 	 : _next_free(-1)
+	 , _vector_refs(0)
 	{ }
+
+	shared_lock read_lock(void)
+	{
+		return shared_lock(_acc_mutex, std::defer_lock);
+	}
+
+	unique_lock write_lock(void)
+	{
+		return unique_lock(_acc_mutex, std::defer_lock);
+	}
 
 	Component& at(component_key key)
 	{
@@ -55,11 +77,13 @@ public:
 
 	void reserve(std::size_t size)
 	{
+		_mutex_guard l(_mod_mutex);
 		_ents.reserve(size);
 	}
 
 	component_key store(Component&& component)
 	{
+		_mutex_guard l(_mod_mutex);
 		component_key result;
 		if(_next_free >= 0)
 		{
@@ -91,35 +115,95 @@ public:
 
 	void add_ref(component_key key)
 	{
+		_mutex_guard l(_mod_mutex);
 		assert(_ents.at(key)._neg_rc_or_nf < 0);
 		--_ents.at(key)._neg_rc_or_nf;
 	}
 
+	void do_release(component_key key)
+	{
+		_ents.at(key)._neg_rc_or_nf = _next_free;
+		_next_free = int(key);
+	}
+
 	bool release(component_key key)
 	{
+		_mutex_guard l(_mod_mutex);
 		assert(_ents.at(key)._neg_rc_or_nf < 0);
 		if(++_ents.at(key)._neg_rc_or_nf == 0)
 		{
-			_ents.at(key)._neg_rc_or_nf = _next_free;
-			_next_free = int(key);
+			if(_vector_refs)
+				_gc_keys.push_back(key);
+			else do_release(key);
 			return true;
 		}
 		return false;
+	}
+
+	void gc(void)
+	{
+		for(auto key: _gc_keys)
+			do_release(key);
+	}
+
+	void lock(void)
+	{
+		_mutex_guard l(_mod_mutex);
+		++_vector_refs;
+	}
+
+	bool try_lock(void)
+	{
+		if(_mod_mutex.try_lock())
+		{
+			_mutex_guard l(_mod_mutex, std::adopt_lock);
+			++_vector_refs;
+			return true;
+		}
+		return false;
+	}
+
+	void unlock(void)
+	{
+		_mutex_guard l(_mod_mutex);
+		if(_vector_refs-- == 0)
+		{
+			gc();
+		}
 	}
 };
 //------------------------------------------------------------------------------
 // flyweight_storage_vector
 //------------------------------------------------------------------------------
-template <typename Component>
+template <typename Group, typename Component>
 class flyweight_storage_vector
- : public component_storage_vector<Component>
+ : public component_storage_vector<Group, Component>
 {
 public:
 	typedef std::size_t component_key;
 private:
-	heavyweight_storage_vector<Component> _ents;
+	heavyweight_storage_vector<Group, Component> _ents;
 	std::map<Component, component_key> _index;
+
+	typedef component_locking<Group, Component> locking;
+	typedef typename locking::shared_lock shared_lock;
+	typedef typename locking::unique_lock unique_lock;
+
+	typedef typename locking::shared_mutex _mutex;
+	typedef typename locking::template lock_guard<_mutex> _mutex_guard;
+
+	_mutex _mod_mutex;
 public:
+	shared_lock read_lock(void)
+	{
+		return _ents.read_lock();
+	}
+
+	unique_lock write_lock(void)
+	{
+		return _ents.write_lock();
+	}
+
 	Component& at(component_key key)
 	{
 		return _ents.at(key);
@@ -132,6 +216,7 @@ public:
 
 	component_key store(Component&& component)
 	{
+		_mutex_guard l(_mod_mutex);
 		auto p = _index.find(component);
 		if(p == _index.end())
 		{
@@ -148,6 +233,7 @@ public:
 
 	component_key replace(component_key key, Component&& component)
 	{
+		_mutex_guard l(_mod_mutex);
 		if(_ents.at(key) == component) return key;
 
 		release(key);
@@ -169,10 +255,26 @@ public:
 	{
 		if(_ents.release(key))
 		{
+			_mutex_guard l(_mod_mutex);
 			_index.erase(_ents.at(key));
 			return true;
 		}
 		return false;
+	}
+
+	void lock(void)
+	{
+		_ents.lock();
+	}
+
+	bool try_lock(void)
+	{
+		return _ents.try_lock();
+	}
+
+	void unlock(void)
+	{
+		_ents.unlock();
 	}
 };
 //------------------------------------------------------------------------------
@@ -189,14 +291,16 @@ struct component_storage_init
 		typedef typename mp::if_c<
 			flyweight_component<Component, Group>::value,
 			flyweight_storage_vector<
+				Group,
 				typename std::remove_reference<Component>::type
 			>,
 			heavyweight_storage_vector<
+				Group,
 				typename std::remove_reference<Component>::type
 			>
 		>::type csv_t;
 
-		component_storage_vector<Component>* pcsv = new csv_t();
+		component_storage_vector<Group, Component>* pcsv = new csv_t();
 		
 		assert(pcsv != nullptr);
 

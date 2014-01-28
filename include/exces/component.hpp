@@ -231,9 +231,6 @@ public:
 
 } // namespace aux
 
-struct shared_component_access_read_only { };
-struct shared_component_access_read_write { };
-
 /// Smart wraper for an instance of a component
 /** Instantiations of this template reference a single instance of a component
  *  of a specified entity. It allows the value to be read or chaned conveniently
@@ -263,6 +260,10 @@ private:
 
 	typedef component_storage<Group> _storage;
 	_storage* _pstorage;
+
+	typedef component_locking<Group, Component> _locking;
+	typename _locking::shared_lock _read_lock;
+	typename _locking::unique_lock _write_lock;
 
 	typedef typename _storage::component_key component_key;
 	component_key _ckey;
@@ -342,17 +343,23 @@ public:
 		return !is_valid();
 	}
 
-	typedef shared_component_access_read_only read_only;
-	typedef shared_component_access_read_write read_write;
+	typedef component_access_read_only read_only;
+	typedef component_access_read_write read_write;
 
 	/// Returns a const reference to the managed component
-	const Component& read(void) const
+	const Component& read(void)
 	{
 		assert(is_valid());
+		if(!_read_lock)
+		{
+			_read_lock = std::move(
+				_pstorage->template read_lock<Component>(_ckey)
+			);
+		}
 		return _pstorage->template access<Component>(_ckey);
 	}
 
-	const Component& access(read_only) const
+	const Component& access(read_only)
 	{
 		return read();
 	}
@@ -368,6 +375,12 @@ public:
 	component_ref write(void)
 	{
 		assert(is_valid());
+		if(!_write_lock)
+		{
+			_write_lock = std::move(
+				_pstorage->template write_lock<Component>(_ckey)
+			);
+		}
 		return this->_make_component_ref(
 			_pmanager,
 			_ekey,
@@ -378,13 +391,7 @@ public:
 
 	component_ref access(read_write)
 	{
-		assert(is_valid());
-		return this->_make_component_ref(
-			_pmanager,
-			_ekey,
-			_pstorage,
-			_ckey
-		);
+		return write();
 	}
 
 	/// Replaces the managed component with a new value
@@ -398,7 +405,6 @@ public:
 			std::move(component)
 		);
 	}
-
 };
 
 template <typename MemVarType, typename Component, typename Group>
@@ -432,7 +438,7 @@ public:
 	 , _mvp(that._mvp)
 	{ }
 
-	const MemVarType& get(void) const
+	const MemVarType& get(void)
 	{
 		assert(_mvp != nullptr);
 		return _ref.read().*_mvp;
@@ -450,7 +456,7 @@ public:
 		_ref.write().*_mvp = std::move(val);
 	}
 
-	operator const MemVarType& (void) const
+	operator const MemVarType& (void)
 	{
 		return get();
 	}

@@ -44,15 +44,6 @@ struct func_adaptor_base
 	struct _fix
 	 : std::remove_cv<typename std::remove_reference<C>::type>
 	{ };
-
-	template <typename C>
-	struct _access
-	 : mp::if_c<
-		std::is_reference<C>::value &&
-		not(std::is_const<C>::value),
-		shared_component_access_read_write,
-		shared_component_access_read_only
-	>{ };
 };
 
 } // namespace aux_
@@ -63,7 +54,6 @@ struct func_adaptor_c
 {
 	typedef aux_::func_adaptor_base _base;
 	using _base::_fix;
-	using _base::_access;
 
 	Functor _functor;
 
@@ -83,7 +73,7 @@ struct func_adaptor_c
 				m.template ref<
 					typename _fix<Components>::type
 				>(k).access(
-					typename _access<Components>::type()
+					get_component_access<Components>()
 				)...
 			);
 		}
@@ -113,7 +103,6 @@ struct func_adaptor_cmv
 {
 	typedef aux_::func_adaptor_base _base;
 	using _base::_fix;
-	using _base::_access;
 
 	Functor _functor;
 	MemVarType Component::*_mem_var_ptr;
@@ -137,7 +126,7 @@ struct func_adaptor_cmv
 				m.template ref<
 					typename _fix<Component>::type
 				>(k).access(
-					typename _access<Component>::type()
+					get_component_access<Component>()
 				)
 			);
 		}
@@ -161,7 +150,6 @@ struct func_adaptor_mkc
 {
 	typedef aux_::func_adaptor_base _base;
 	using _base::_fix;
-	using _base::_access;
 
 	Functor _functor;
 
@@ -182,7 +170,7 @@ struct func_adaptor_mkc
 				m.template ref<
 					typename _fix<Components>::type
 				>(k).access(
-					typename _access<Components>::type()
+					get_component_access<Components>()
 				)...
 			);
 		}
@@ -223,7 +211,6 @@ struct func_adaptor_mkec
 {
 	typedef aux_::func_adaptor_base _base;
 	using _base::_fix;
-	using _base::_access;
 
 	Functor _functor;
 
@@ -244,7 +231,7 @@ struct func_adaptor_mkec
 				m.template ref<
 					typename _fix<Components>::type
 				>(k).access(
-					typename _access<Components>::type()
+					get_component_access<Components>()
 				)...
 			);
 		}

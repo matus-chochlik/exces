@@ -790,6 +790,47 @@ public:
 		return has_some_seq(e, typename _fixn<Components...>::type());
 	}
 
+	template <typename ... C>
+	group_lock<typename mp::instead<C, poly_lock>::type...>
+	lifetime_lock(void)
+	{
+		return group_lock<
+			typename mp::instead<C,poly_lock>::type...
+		>(_storage.template lifetime_lock<typename _fix1<C>::type>()...);
+	}
+
+	template <typename ... C>
+	auto raw_access_lock(void) -> decltype(
+		make_group_lock(
+			_storage.template access_lock<typename _fix1<C>::type>(
+				get_component_access<typename _fix1<C>::type>()
+			)...
+		)
+	)
+	{
+		return make_group_lock(
+			_storage.template access_lock<typename _fix1<C>::type>(
+				get_component_access<typename _fix1<C>::type>()
+			)...
+		);
+	}
+
+	template <typename Component>
+	Component& raw_access(entity_key ek)
+	{
+		std::size_t cid = component_id<Component, Group>::value;
+		typename _component_storage::component_key key;
+		assert(ek->second._component_bits.test(cid));
+
+		typename component_index<Component>::type cidx =
+			_component_indices.get(
+				ek->second._component_bits
+			)[cid];
+
+		key = ek->second._component_keys[cidx];
+		return _storage.template access<Component>(key);
+	}
+
 	/// Gets a shared reference to entity's component
 	/**
 	 *  The manager that created this reference must not be destroyed
@@ -802,13 +843,12 @@ public:
 	template <typename Component>
 	shared_component<Component, Group> ref(entity_key ek)
 	{
-		typedef typename _fix1<Component>::type fixed_C;
-		std::size_t cid = component_id<fixed_C, Group>::value;
+		std::size_t cid = component_id<Component, Group>::value;
 		typename _component_storage::component_key key;
 		if(ek->second._component_bits.test(cid))
 		{
 
-			typename component_index<fixed_C>::type cidx =
+			typename component_index<Component>::type cidx =
 				_component_indices.get(
 					ek->second._component_bits
 				)[cid];
@@ -820,7 +860,12 @@ public:
 			key = _storage.null_key();
 		}
 
-		return shared_component<fixed_C, Group>(*this, ek, _storage, key);
+		return shared_component<Component, Group>(
+			*this,
+			ek,
+			_storage,
+			key
+		);
 	}
 
 	/// Gets a shared reference to entity's component
