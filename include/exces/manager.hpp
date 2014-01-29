@@ -543,7 +543,8 @@ public:
 	template <typename ... Components>
 	manager& remove(entity_key k)
 	{
-		return remove_seq<typename _fixn<Components...>::type>(k);
+		typename _sortn<typename _fix1<Components>::type...>::type seq;
+		return remove_seq(k, seq);
 	}
 
 	/// Removes the specified components from the specified entity
@@ -555,7 +556,8 @@ public:
 	template <typename ... Components>
 	manager& remove(entity_type e)
 	{
-		return remove_seq<typename _fixn<Components...>::type>(e);
+		typename _sortn<typename _fix1<Components>::type...>::type seq;
+		return remove_seq(e, seq);
 	}
 
 	/// Replaces the specified components in the specified entity
@@ -694,7 +696,8 @@ public:
 	template <typename ... Components>
 	manager& copy(entity_key f, entity_key t)
 	{
-		return copy_seq(f, t, typename _fixn<Components...>::type());
+		typename _sortn<typename _fix1<Components>::type...>::type seq;
+		return copy_seq(f, t, seq);
 	}
 
 	/// Copy the specified components between the specified entities
@@ -708,7 +711,8 @@ public:
 	template <typename ... Components>
 	manager& copy(entity_type from, entity_type to)
 	{
-		return copy_seq(from, to, typename _fixn<Components...>::type());
+		typename _sortn<typename _fix1<Components>::type...>::type seq;
+		return copy_seq(from, to, seq);
 	}
 
 	/// Returns true if the specified entity has the specified Component
@@ -755,14 +759,16 @@ public:
 	template <typename ... Components>
 	bool has_all(entity_key ek)
 	{
-		return has_all_seq(ek, typename _fixn<Components...>::type());
+		typename _sortn<typename _fix1<Components>::type...>::type seq;
+		return has_all_seq(ek, seq);
 	}
 
 	/// Returns true if the specified entity has all the specified Components
 	template <typename ... Components>
 	bool has_all(entity_type e)
 	{
-		return has_all_seq(e, typename _fixn<Components...>::type());
+		typename _sortn<typename _fix1<Components>::type...>::type seq;
+		return has_all_seq(e, seq);
 	}
 
 	/// Returns true if the specified entity has some of the Components
@@ -788,14 +794,16 @@ public:
 	template <typename ... Components>
 	bool has_some(entity_key ek)
 	{
-		return has_some_seq(ek, typename _fixn<Components...>::type());
+		typename _sortn<typename _fix1<Components>::type...>::type seq;
+		return has_some_seq(ek, seq);
 	}
 
 	/// Returns true if the specified entity has some of the Components
 	template <typename ... Components>
 	bool has_some(entity_type e)
 	{
-		return has_some_seq(e, typename _fixn<Components...>::type());
+		typename _sortn<typename _fix1<Components>::type...>::type seq;
+		return has_some_seq(e, seq);
 	}
 
 	/// Creates an unlocked Lockable managing Component lifetime
