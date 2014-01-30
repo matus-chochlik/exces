@@ -1181,27 +1181,6 @@ public:
 	}
 };
 
-namespace aux_ {
-
-template <typename Component, typename Group>
-inline void manager_replace_component_at(
-	manager<Group>& mngr,
-	typename manager<Group>::entity_key ek,
-	typename component_storage<Group>::component_key ck,
-	Component&& component
-)
-{
-	mngr.replace_component_at(ek, ck, std::move(component));
-}
-
-template <typename Group>
-component_storage<Group>&
-manager_get_storage_ref(manager<Group>& mngr)
-{
-	return mngr._get_storage_ref();
-}
-
-} // namespace aux_
 } // namespace exces
 
 #endif //include guard

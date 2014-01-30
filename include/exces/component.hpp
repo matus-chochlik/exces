@@ -134,8 +134,7 @@ public:
 			{
 				if(temp() != orig())
 				{
-					aux_::manager_replace_component_at(
-						*_exces_aux_pmanager,
+					_exces_aux_pmanager->replace_component_at(
 						_exces_aux_ekey,
 						_exces_aux_ckey,
 						std::move(temp())
@@ -280,7 +279,7 @@ private:
 	_storage& _cstorage(void)
 	{
 		assert(_pmanager);
-		aux_::manager_get_storage_ref(*_pmanager);
+		return _pmanager->_get_storage_ref();
 	}
 
 	typedef typename _manager::entity_key _entity_key;
@@ -399,8 +398,7 @@ public:
 	void replace(Component&& component)
 	{
 		assert(is_valid());
-		aux_::manager_replace_component_at(
-			*_pmanager,
+		_pmanager->replace_component_at(
 			_ekey,
 			_ckey,
 			std::move(component)

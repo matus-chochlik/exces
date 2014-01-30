@@ -103,20 +103,6 @@ public:
 	const index_vector& get(const component_bitset<Group>& bits);
 };
 
-// function implemented in manager.hpp
-template <typename Component, typename Group>
-void manager_replace_component_at(
-	manager<Group>& mngr,
-	typename manager<Group>::entity_key ek,
-	typename component_storage<Group>::component_key ck,
-	Component&& component
-);
-
-// function implemented in manager.hpp
-template <typename Group>
-component_storage<Group>&
-manager_get_storage_ref(manager<Group>& mngr);
-
 } // namespace aux_
 } // namespace exces
 
