@@ -85,18 +85,18 @@ public:
 	float get_weight(entity_key k)
 	{
 		auto e = _manager.get_entity(k);
-		auto ep = _manager.ref<physical>(k);
-		float w = ep.read().weight;
+		auto ep = _manager.cref<physical>(k);
+		float w = ep->weight;
 
-		auto ec = _manager.ref<container>(k);
+		auto ec = _manager.cref<container>(k);
 		if(ec)
 		{
-			float wc = ec.read().weight_coef;
+			float wc = ec->weight_coef;
 
 			auto r = _manager.select_with<contained>();
 			while(!r.empty())
 			{
-				if(r.ref<contained>().read().container == e)
+				if(r.cref<contained>()->container == e)
 					w += wc * get_weight(r.front());
 				r.next();
 			}
@@ -112,20 +112,20 @@ public:
 	float get_size(entity_key k)
 	{
 		auto e = _manager.get_entity(k);
-		auto ep = _manager.ref<physical>(k);
-		float s = ep.read().size;
+		auto ep = _manager.cref<physical>(k);
+		float s = ep->size;
 
-		auto ec = _manager.ref<container>(k);
+		auto ec = _manager.cref<container>(k);
 		if(ec)
 		{
-			if(ec.read().growable)
+			if(ec->growable)
 			{
-				float sc = ec.read().size_coef;
+				float sc = ec->size_coef;
 				
 				auto r = _manager.select_with<contained>();
 				while(!r.empty())
 				{
-					if(r.ref<contained>().read().container == e)
+					if(r.cref<contained>()->container == e)
 						s += sc * get_size(r.front());
 					r.next();
 				}
@@ -151,14 +151,14 @@ public:
 	void put_into(entity_key cont, entity_key item)
 	{
 		auto cc = _manager.ref<container>(cont);
-		auto ip = _manager.ref<physical>(item);
+		auto ip = _manager.cref<physical>(item);
 
 		assert(cc);
 
 		if(ip)
 		{
-			cc.write().cur_size += ip.read().size;
-			cc.write().cur_weight += ip.read().weight;
+			cc->cur_size += ip->size;
+			cc->cur_weight += ip->weight;
 		}
 		_manager.add(item, contained(_manager.get_entity(cont)));
 	}
@@ -171,14 +171,14 @@ public:
 	void get_from(entity_key cont, entity_key item)
 	{
 		auto cc = _manager.ref<container>(cont);
-		auto ip = _manager.ref<physical>(item);
+		auto ip = _manager.cref<physical>(item);
 
 		assert(cc);
 
 		if(ip)
 		{
-			cc.write().cur_size -= ip.read().size;
-			cc.write().cur_weight -= ip.read().weight;
+			cc->cur_size -= ip->size;
+			cc->cur_weight -= ip->weight;
 		}
 		_manager.remove<contained>(item);
 	}

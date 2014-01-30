@@ -13,30 +13,12 @@
 #include <exces/group.hpp>
 #include <exces/threads.hpp>
 #include <exces/metaprog.hpp>
+#include <exces/fwd.hpp>
 
 #include <cassert>
 
 namespace exces {
 
-struct component_access_read_only { };
-struct component_access_read_write { };
-
-template <typename Component>
-inline typename mp::if_c<
-	std::is_reference<Component>::value &&
-	not(std::is_const<Component>::value),
-	component_access_read_write,
-	component_access_read_only
->::type get_component_access(void)
-{
-	return typename mp::if_c<
-		std::is_reference<Component>::value &&
-		not(std::is_const<Component>::value),
-		component_access_read_write,
-		component_access_read_only
-	>::type();
-}
- 
 // Interface for component storage vectors of component_storage
 template <typename Group, typename Component>
 struct component_storage_vector : lock_intf
@@ -108,6 +90,16 @@ private:
 		assert(_pcsv != nullptr);
 		return *_pcsv;
 	}
+
+	template <typename Component>
+	static
+	typename component_locking<Group, Component>::shared_lock
+	_get_access_lock_t(component_access_read_only);
+
+	template <typename Component>
+	static
+	typename component_locking<Group, Component>::unique_lock
+	_get_access_lock_t(component_access_read_write);
 public:
 	component_storage(const component_storage&) = delete;
 	component_storage(void);
@@ -115,6 +107,13 @@ public:
 
 	/// The component key type
 	typedef std::size_t component_key;
+
+	/// Returns the type of lock used for Access type
+	template <typename Component, typename Access>
+	struct component_access_lock
+	{
+		typedef decltype(_get_access_lock_t<Component>(Access())) type;
+	};
 
 	/// Return a special NULL component key value
 	static component_key null_key(void)

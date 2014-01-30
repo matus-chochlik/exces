@@ -321,16 +321,22 @@ private:
 		any_collection<Group>* new_cl
 	);
 
-	typedef std::vector<std::size_t> _class_update_key_list;
+	typedef std::vector<std::size_t> _collection_update_key_list;
 
-	_class_update_key_list _begin_class_update(
+	_collection_update_key_list _begin_collection_update(
 		typename _entity_info_map::iterator key
 	);
-	void _finish_class_update(
+	void _finish_collection_update(
 		typename _entity_info_map::iterator key,
-		const _class_update_key_list& update_keys
+		const _collection_update_key_list& update_keys
 	);
 public:
+	// implementation detail DO NOT use directly
+	_component_storage& _get_storage_ref(void)
+	{
+		return _storage;
+	}
+
 	static void _instantiate(void);
 
 	/// The type of entity used by this manager
@@ -838,14 +844,14 @@ public:
 	auto raw_access_lock_tl(mp::typelist<C...>) -> decltype(
 		make_group_lock(
 			_storage.template access_lock<typename _fix1<C>::type>(
-				get_component_access<typename _fix1<C>::type>()
+				get_component_access<C>()
 			)...
 		)
 	)
 	{
 		return make_group_lock(
 			_storage.template access_lock<typename _fix1<C>::type>(
-				get_component_access<typename _fix1<C>::type>()
+				get_component_access<C>()
 			)...
 		);
 	}
@@ -972,14 +978,13 @@ public:
 	 *  on multiple entities, it is much more efficient obtain the lifetime
 	 *  and raw-access locks and use the raw_access member function instead.
 	 *
-	 *  @pre has<Component>(ek)
-	 *
 	 *  @see lifetime_lock
 	 *  @see raw_access_lock
 	 *  @see raw_access
 	 */
-	template <typename Component>
-	shared_component<Component, Group> ref(entity_key ek)
+	template <typename Component, typename Access>
+	shared_component<Group, Component, Access>
+	ref(entity_key ek, Access)
 	{
 		std::size_t cid = component_id<Component, Group>::value;
 		typename _component_storage::component_key key;
@@ -998,10 +1003,9 @@ public:
 			key = _storage.null_key();
 		}
 
-		return shared_component<Component, Group>(
+		return shared_component<Group, Component, Access>(
 			*this,
 			ek,
-			_storage,
 			key
 		);
 	}
@@ -1012,47 +1016,54 @@ public:
 	 *  while any copies of the reference are still valid. Then the
 	 *  instance of the referenced component remains valid even if
 	 *  if is removed from the entity.
-	 *
-	 *  @pre has<Component>(e)
 	 */
 	template <typename Component>
-	shared_component<Component, Group> ref(entity_type e)
+	shared_component<Group, Component, component_access_read_only>
+	cref(entity_key ek)
 	{
-		return ref<Component>(_find_entity(e));
+		return ref<Component>(ek, component_access_read_only());
 	}
 
-	/// Gets a shared reference to entity's component's member variable
+	/// Gets a thread-safe shared reference to entity's component
 	/**
 	 *  The manager that created this reference must not be destroyed
 	 *  while any copies of the reference are still valid. Then the
 	 *  instance of the referenced component remains valid even if
 	 *  if is removed from the entity.
-	 *
-	 *  @pre has<Component>(e)
 	 */
-	template <typename MemVarType, typename Component>
-	shared_component_mem_var<MemVarType, Component, Group> mv(
-		entity_key key,
-		MemVarType Component::* mem_var_ptr
-	)
+	template <typename Component>
+	shared_component<Group, Component, component_access_read_only>
+	cref(entity_type e)
 	{
-		return shared_component_mem_var<MemVarType, Component, Group>(
-			ref<Component>(key),
-			mem_var_ptr
-		);
+		return cref<Component>(_find_entity(e));
 	}
 
-	/// Gets a shared reference to entity's component's member variable
-	template <typename MemVarType, typename Component>
-	shared_component_mem_var<MemVarType, Component, Group> mv(
-		entity_type e,
-		MemVarType Component::* mem_var_ptr
-	)
+	/// Gets a thread-safe shared reference to entity's component
+	/**
+	 *  The manager that created this reference must not be destroyed
+	 *  while any copies of the reference are still valid. Then the
+	 *  instance of the referenced component remains valid even if
+	 *  if is removed from the entity.
+	 */
+	template <typename Component>
+	shared_component<Group, Component, component_access_read_write>
+	ref(entity_key ek)
 	{
-		return shared_component_mem_var<MemVarType, Component, Group>(
-			ref<Component>(e),
-			mem_var_ptr
-		);
+		return ref<Component>(ek, component_access_read_write());
+	}
+
+	/// Gets a thread-safe shared reference to entity's component
+	/**
+	 *  The manager that created this reference must not be destroyed
+	 *  while any copies of the reference are still valid. Then the
+	 *  instance of the referenced component remains valid even if
+	 *  if is removed from the entity.
+	 */
+	template <typename Component>
+	shared_component<Group, Component, component_access_read_write>
+	ref(entity_type e)
+	{
+		return ref<Component>(_find_entity(e));
 	}
 
 	template <typename Visitor>
@@ -1181,6 +1192,13 @@ inline void manager_replace_component_at(
 )
 {
 	mngr.replace_component_at(ek, ck, std::move(component));
+}
+
+template <typename Group>
+component_storage<Group>&
+manager_get_storage_ref(manager<Group>& mngr)
+{
+	return mngr._get_storage_ref();
 }
 
 } // namespace aux_

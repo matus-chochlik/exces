@@ -150,28 +150,20 @@ public:
 		return _m().template rw<Component>(self());
 	}
 
-	/// Returns a smart reference to the specified Component
-	/**
-	 *  @pre this->has<Component>()
-	 */
+	/// Returns a const smart reference to the specified Component
 	template <typename Component>
-	shared_component<Component, Group> ref(void) const
+	shared_component<Group, Component, component_access_read_only>
+	cref(void) const
 	{
-		return _m().template ref<Component>(self());
+		return _m().template cref<Component>(self());
 	}
 
-	/// Returns a smart reference to the specified Component member variable
-	/**
-	 *  @pre this->has<Component>()
-	 */
-	template <typename MemVarType, typename Component>
-	shared_component_mem_var<MemVarType, Component, Group>
-	mv(MemVarType Component::* mem_var_ptr) const
+	/// Returns a smart reference to the specified Component
+	template <typename Component>
+	shared_component<Group, Component, component_access_read_write>
+	ref(void) const
 	{
-		return _m().template mv<MemVarType, Component>(
-			self(),
-			mem_var_ptr
-		);
+		return _m().template ref<Component>(self());
 	}
 
 	template <typename ... Components>

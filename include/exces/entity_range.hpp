@@ -85,20 +85,18 @@ public:
 
 	/// Returns a reference to Component of the entity at front of the range
 	template <typename Component>
-	shared_component<Component, Group> ref(void) const
+	shared_component<Group, Component, component_access_read_only>
+	cref(void) const
 	{
-		return _manager.template ref<Component>(BaseRange::front());
+		return _manager.template cref<Component>(BaseRange::front());
 	}
 
 	/// Returns a reference to Component of the entity at front of the range
-	template <typename MemVarType, typename Component>
-	shared_component_mem_var<MemVarType, Component, Group>
-	mv(MemVarType Component::* mem_var_ptr) const
+	template <typename Component>
+	shared_component<Group, Component, component_access_read_write>
+	ref(void) const
 	{
-		return _manager.template mv<MemVarType, Component>(
-			BaseRange::front(),
-			mem_var_ptr
-		);
+		return _manager.template ref<Component>(BaseRange::front());
 	}
 
 	/// Moves the front of the range one element ahead

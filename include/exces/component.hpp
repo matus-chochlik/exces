@@ -12,164 +12,87 @@
 
 #include <exces/group.hpp>
 #include <exces/storage.hpp>
+#include <exces/aux_/component.hpp>
 
-#include <map>
-#include <array>
-#include <bitset>
 #include <cassert>
 #include <type_traits>
 
 namespace exces {
-
-template <typename Group>
-class manager;
-
 namespace aux_ {
 
-template <typename Group>
-struct component_less_mf
+// sh_comp_base
+template <
+	typename Group,
+	typename Component,
+	typename Kind,
+	typename Access
+> class sh_comp_base;
+
+// read-only sh_comp_base
+template <typename Group, typename Component, typename Kind>
+class sh_comp_base<
+	Group,
+	Component,
+	Kind,
+	component_access_read_only
+>
 {
-	template <typename C1, typename C2>
-	struct apply
-	 : mp::integral_constant<
-		bool, (
-			component_id<C1, Group>::value<
-			component_id<C2, Group>::value
-		)
-	>{ };
-};
-
-template <typename Group, typename Components>
-struct sort_components
- : mp::sort<Components, component_less_mf<Group>>
-{ };
-
-// less than comparison for bitsets smaller than uint
-struct component_bitset_less_small
-{
-	template <typename Bitset>
-	bool operator()(const Bitset& a, const Bitset& b) const
-	{
-		return a.to_ulong() < b.to_ulong();
-	}
-};
-
-// less than comparison for bitsets bigger than uint
-template <typename Size>
-struct component_bitset_less_big
-{
-	template <typename Bitset>
-	bool operator()(const Bitset& a, const Bitset& b) const
-	{
-		for(std::size_t i=0; i!=Size(); ++i)
-		{
-			if(a[i] < b[i]) return true;
-			if(a[i] > b[i]) return false;
-		}
-		return false;
-	}
-};
-
-template <typename Group>
-struct component_bitset
- : std::bitset<mp::size<components<Group>>::value>
-{ };
-
-template <typename Group>
-class component_index_map
-{
-private:
-	// type of the component index (unsigned int with sufficient range)
-	typedef typename component_index<Group>::type _component_index_t;
-	typedef mp::size<components<Group>> _component_count;
 public:
-	typedef std::array<
-		_component_index_t,
-		_component_count::value
-	> index_vector;
-private:
-	// the less than comparison functor to be used
-	// when comparing two bitsets
-	typedef typename mp::if_c<
-		_component_count::value <= sizeof(unsigned long)*8,
-		component_bitset_less_small,
-		component_bitset_less_big<_component_count>
-	>::type component_bitset_less;
-
-	typedef std::map<
-		component_bitset<Group>,
-		index_vector,
-		component_bitset_less
-	> _index_map;
-
-	_index_map _indices;
-public:
-	const index_vector& get(const component_bitset<Group>& bits) const;
-	const index_vector& get(const component_bitset<Group>& bits);
-};
-
-// function implemented in manager.hpp
-template <typename Component, typename Group>
-void manager_replace_component_at(
-	manager<Group>& mngr,
-	typename manager<Group>::entity_key ek,
-	typename component_storage<Group>::component_key ck,
-	Component&& component
-);
-
-
-// shared_component_base
-template <typename Component, typename Group, bool IsFlyweight>
-class shared_component_base;
-
-// heawyweight shared_component_base
-template <typename Component, typename Group>
-class shared_component_base<Component, Group, false>
-{
+	template <typename M, typename S, typename EK, typename CK>
+	struct component_ptr
+	{
+		typedef const Component* type;
+	};
 protected:
-	typedef manager<Group> _manager;
-
-	typedef typename _manager::entity_key entity_key;
-
-	typedef component_storage<Group> _storage;
-
-	typedef typename _storage::component_key component_key;
-
-	typedef Component& component_ref;
-
-	static component_ref _make_component_ref(
-		_manager*,
-		entity_key,
-		_storage* pstorage,
-		component_key key
-	)
+	template <typename M, typename S, typename EK, typename CK>
+	static const Component* _make_ptr(const M&, S& storage, EK, CK key)
 	{
-		pstorage->template mark_write<Component>(key);
-		return pstorage->template access<Component>(key);
+		return &storage.template access<Component>(key);
 	}
-public:
 };
 
-// flyweight shared_component_base
-template <typename Component, typename Group>
-class shared_component_base<Component, Group, true>
+// read-write normal sh_comp_base
+template <typename Group, typename Component>
+class sh_comp_base<
+	Group,
+	Component,
+	component_kind_normal,
+	component_access_read_write
+>
 {
+public:
+	template <typename M, typename S, typename EK, typename CK>
+	struct component_ptr
+	{
+		typedef Component* type;
+	};
 protected:
-	typedef manager<Group> _manager;
+	template <typename M, typename S, typename EK, typename CK>
+	static Component* _make_ptr(const M&, S& storage, EK, CK key)
+	{
+		storage.template mark_write<Component>(key);
+		return &storage.template access<Component>(key);
+	}
+};
 
-	typedef typename _manager::entity_key entity_key;
-
-	typedef component_storage<Group> _storage;
-
-	typedef typename _storage::component_key component_key;
-
-	class component_ref : public Component
+// read-write flyweight sh_comp_base
+template <typename Group, typename Component>
+class sh_comp_base<
+	Group,
+	Component,
+	component_kind_flyweight,
+	component_access_read_write
+>
+{
+public:
+	template <typename M, typename S, typename EK, typename CK>
+	class component_ptr : public Component
 	{
 	private:
-		_manager* _exces_aux_pmanager;
-		entity_key _exces_aux_ekey;
-		_storage* _exces_aux_pstorage;
-		component_key _exces_aux_ckey;
+		M* _exces_aux_pmanager;
+		S* _exces_aux_pstorage;
+		EK _exces_aux_ekey;
+		CK _exces_aux_ckey;
 
 		Component& temp(void) { return *this; }
 		Component& orig(void)
@@ -180,11 +103,13 @@ protected:
 			);
 		}
 	public:
-		component_ref(
-			_manager* pmanager,
-			entity_key ekey,
-			_storage* pstorage,
-			component_key ckey
+		typedef component_ptr type;
+
+		component_ptr(
+			M* pmanager,
+			S* pstorage,
+			EK ekey,
+			CK ckey
 		): Component(pstorage->template access<Component>(ckey))
 		 , _exces_aux_pmanager(pmanager)
 		 , _exces_aux_ekey(ekey)
@@ -192,7 +117,7 @@ protected:
 		 , _exces_aux_ckey(ckey)
 		{ }
 
-		component_ref(component_ref&& tmp)
+		component_ptr(component_ptr&& tmp)
 		 : Component(static_cast<Component&&>(tmp))
 		 , _exces_aux_pmanager(tmp._exces_aux_pmanager)
 		 , _exces_aux_ekey(tmp._exces_aux_ekey)
@@ -203,7 +128,7 @@ protected:
 			tmp._exces_aux_pstorage = nullptr;
 		}
 
-		~component_ref(void)
+		~component_ptr(void)
 		{
 			if(_exces_aux_pmanager && _exces_aux_pstorage)
 			{
@@ -219,31 +144,102 @@ protected:
 			}
 		}
 
-		operator Component (void) const
+		operator Component * (void)
 		{
-			return temp();
-		}
-
-		component_ref& operator = (Component that)
-		{
-			temp() = that;
-			return *this;
+			return this;
 		}
 	};
-public:
-	static component_ref _make_component_ref(
-		_manager* pmanager,
-		entity_key ekey,
-		_storage* pstorage,
-		component_key ckey
-	)
+protected:
+	template <typename M, typename S, typename EK, typename CK>
+	static component_ptr<M, S, EK, CK>
+	_make_ptr(M& manager, S& storage, EK ekey, CK ckey)
 	{
-		return component_ref(
-			pmanager,
+		storage.template mark_write<Component>(ckey);
+		return component_ptr<M, S, EK, CK>(
+			manager,
+			storage,
 			ekey,
-			pstorage,
 			ckey
 		);
+	}
+};
+
+template <
+	typename Group,
+	typename Component,
+	typename Kind,
+	typename Access
+>
+class sh_comp_acc_op
+{
+private:
+	typedef typename sh_comp_base<
+		Group,
+		Component,
+		Kind,
+		Access
+	>::template component_ptr<
+		manager<Group>,
+		component_storage<Group>,
+		typename manager<Group>::entity_key,
+		typename component_storage<Group>::component_key
+	>::type _component_ptr;
+
+	_component_ptr _ptr;
+
+	typedef typename component_storage<Group>
+	::template component_access_lock<
+		Component,
+		Access
+	>::type _lockable;
+
+	_lockable _lock;
+
+	typedef component_locking<Group, Component> _locking;
+	typename _locking::template lock_guard<_lockable> _guard;
+
+	static const Component* _get_ptr_type(component_access_read_only);
+	static Component* _get_ptr_type(component_access_read_write);
+	typedef decltype(_get_ptr_type(Access())) _ptr_type;
+
+	static const Component& _get_ref_type(component_access_read_only);
+	static Component& _get_ref_type(component_access_read_write);
+	typedef decltype(_get_ref_type(Access())) _ref_type;
+
+	_ptr_type _get_ptr(void)
+	{
+		_ptr_type result = _ptr;
+		assert(result);
+		return result;
+	}
+public:
+	sh_comp_acc_op(_component_ptr&& ptr, _lockable&& lock)
+	 : _ptr(std::move(ptr))
+	 , _lock(std::move(lock))
+	 , _guard(_lock)
+	{ }
+
+	sh_comp_acc_op(sh_comp_acc_op&& tmp)
+	 : _ptr(std::move(tmp._ptr))
+	 , _lock(std::move(tmp._lock))
+	 , _guard(std::move(tmp._guard))
+	{ }
+
+	sh_comp_acc_op(const sh_comp_acc_op&) = delete;
+
+	_ref_type self(void)
+	{
+		return *(_get_ptr());
+	}
+
+	operator _ref_type (void)
+	{
+		return *(_get_ptr());
+	}
+
+	_ptr_type operator -> (void)
+	{
+		return _get_ptr();
 	}
 };
 
@@ -255,42 +251,50 @@ public:
  *  and ensures that the instance of the component remains valid even if it
  *  is removed from the entity.
  */
-template <typename Component, typename Group>
+template <
+	typename Group,
+	typename Component,
+	typename Access
+>
 class shared_component
- : public aux_::shared_component_base<
-	Component,
+ : public aux_::sh_comp_base<
 	Group,
-	flyweight_component<Component>::value
+	Component,
+	typename component_kind<Component, Group>::type,
+	Access
 >
 {
 private:
-	typedef aux_::shared_component_base<
-		Component,
+	typedef aux_::sh_comp_base<
 		Group,
-		flyweight_component<Component>::value
+		Component,
+		typename component_kind<Component, Group>::type,
+		Access
 	> _base;
 
 	typedef manager<Group> _manager;
 	_manager* _pmanager;
 
+	typedef component_storage<Group> _storage;
+
+	_storage& _cstorage(void)
+	{
+		assert(_pmanager);
+		aux_::manager_get_storage_ref(*_pmanager);
+	}
+
 	typedef typename _manager::entity_key _entity_key;
 	_entity_key _ekey;
 
-	typedef component_storage<Group> _storage;
-	_storage* _pstorage;
-
-	typedef component_locking<Group, Component> _locking;
-	typename _locking::shared_lock _read_lock;
-	typename _locking::unique_lock _write_lock;
-
-	typedef typename _storage::component_key component_key;
-	component_key _ckey;
+	typedef typename component_storage<Group>::component_key
+		_component_key;
+	_component_key _ckey;
 
 	void _add_ref(void)
 	{
 		if(is_valid())
 		{
-			_pstorage->template add_ref<Component>(_ckey);
+			_cstorage().template add_ref<Component>(_ckey);
 		}
 	}
 
@@ -298,18 +302,24 @@ private:
 	{
 		if(is_valid())
 		{
-			_pstorage->template release<Component>(_ckey);
+			_cstorage().template release<Component>(_ckey);
 		}
 	}
+
+	typedef component_locking<Group, Component> _locking;
+
+	static typename _locking::shared_lock
+	_get_access_lock(component_access_read_only);
+
+	static typename _locking::unique_lock
+	_get_access_lock(component_access_read_write);
 public:
 	shared_component(
 		_manager& mngr,
 		_entity_key ekey,
-		_storage& storage,
-		component_key ckey
+		_component_key ckey
 	): _pmanager(&mngr)
 	 , _ekey(ekey)
-	 , _pstorage(&storage)
 	 , _ckey(ckey)
 	{
 		_add_ref();
@@ -319,7 +329,6 @@ public:
 	shared_component(const shared_component& that)
 	 : _pmanager(that._pmanager)
 	 , _ekey(that._ekey)
-	 , _pstorage(that._pstorage)
 	 , _ckey(that._ckey)
 	{
 		_add_ref();
@@ -329,11 +338,9 @@ public:
 	shared_component(shared_component&& tmp)
 	 : _pmanager(tmp._pmanager)
 	 , _ekey(tmp._ekey)
-	 , _pstorage(tmp._pstorage)
 	 , _ckey(tmp._ckey)
 	{
 		tmp._pmanager = nullptr;
-		tmp._pstorage = nullptr;
 		tmp._ckey = _storage::null_key();
 	}
 
@@ -346,7 +353,7 @@ public:
 	/// Returns true if the component has not been moved from
 	bool is_valid(void) const
 	{
-		return _pmanager && _pstorage && (_ckey != _storage::null_key());
+		return _pmanager && (_ckey != _storage::null_key());
 	}
 
 	/// Returns true if the component has not been moved from
@@ -361,55 +368,31 @@ public:
 		return !is_valid();
 	}
 
-	typedef component_access_read_only read_only;
-	typedef component_access_read_write read_write;
-
-	/// Returns a const reference to the managed component
-	const Component& read(void)
-	{
-		assert(is_valid());
-		if(!_read_lock)
-		{
-			_read_lock = std::move(
-				_pstorage->template read_lock<Component>(_ckey)
-			);
-		}
-		return _pstorage->template access<Component>(_ckey);
-	}
-
-	const Component& access(read_only)
-	{
-		return read();
-	}
-
-#if OALPLUS_DOCUMENTATION_ONLY
-	/// The type of the reference that allows to mutate the component
-	typedef Unspecified component_ref;
-#else
-	typedef typename _base::component_ref component_ref;
-#endif
+	typedef aux_::sh_comp_acc_op<
+		Group,
+		Component,
+		typename component_kind<Component>::type,
+		Access
+	> access_op;
 
 	/// Returns a reference that allows to change the managed component
-	component_ref write(void)
+	access_op get(void)
 	{
 		assert(is_valid());
-		if(!_write_lock)
-		{
-			_write_lock = std::move(
-				_pstorage->template write_lock<Component>(_ckey)
-			);
-		}
-		return this->_make_component_ref(
-			_pmanager,
-			_ekey,
-			_pstorage,
-			_ckey
+		return access_op(
+			this->_make_ptr(
+				*_pmanager,
+				_cstorage(),
+				_ekey,
+				_ckey
+			),
+			_cstorage().template access_lock<Component>(Access())
 		);
 	}
 
-	component_ref access(read_write)
+	access_op operator -> (void)
 	{
-		return write();
+		return get();
 	}
 
 	/// Replaces the managed component with a new value
@@ -425,72 +408,21 @@ public:
 	}
 };
 
-template <typename MemVarType, typename Component, typename Group>
-class shared_component_mem_var
+template <typename Component>
+inline typename mp::if_c<
+	std::is_reference<Component>::value &&
+	not(std::is_const<Component>::value),
+	component_access_read_write,
+	component_access_read_only
+>::type get_component_access(void)
 {
-private:
-	typedef manager<Group> _manager;
-	typedef typename _manager::entity_key _entity_key;
-	typedef component_storage<Group> _storage;
-	typedef typename _storage::component_key component_key;
-
-	shared_component<Component, Group> _ref;
-	MemVarType Component::* _mvp;
-public:
-	shared_component_mem_var(
-		shared_component<Component, Group>&& ref,
-		MemVarType Component::* mvp
-	): _ref(std::move(ref))
-	 , _mvp(mvp)
-	{
-		assert(_mvp != nullptr);
-	}
-
-	shared_component_mem_var(const shared_component_mem_var& that)
-	 : _ref(that._ref)
-	 , _mvp(that._mvp)
-	{ }
-
-	shared_component_mem_var(shared_component_mem_var&& that)
-	 : _ref(std::move(that._ref))
-	 , _mvp(that._mvp)
-	{ }
-
-	const MemVarType& get(void)
-	{
-		assert(_mvp != nullptr);
-		return _ref.read().*_mvp;
-	}
-
-	void set(const MemVarType& val)
-	{
-		assert(_mvp != nullptr);
-		_ref.write().*_mvp = val;
-	}
-
-	void set(MemVarType&& val)
-	{
-		assert(_mvp != nullptr);
-		_ref.write().*_mvp = std::move(val);
-	}
-
-	operator const MemVarType& (void)
-	{
-		return get();
-	}
-
-	shared_component_mem_var& operator = (const MemVarType& val)
-	{
-		set(val);
-		return *this;
-	}
-
-	shared_component_mem_var& operator = (MemVarType&& val)
-	{
-		set(std::move(val));
-		return *this;
-	}
-};
+	return typename mp::if_c<
+		std::is_reference<Component>::value &&
+		not(std::is_const<Component>::value),
+		component_access_read_write,
+		component_access_read_only
+	>::type();
+}
 
 } // namespace exces
 

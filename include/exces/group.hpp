@@ -11,6 +11,7 @@
 #define EXCES_GROUP_1212101431_HPP
 
 #include <exces/aux_/global_list.hpp>
+#include <exces/fwd.hpp>
 
 #include <type_traits>
 
@@ -46,8 +47,8 @@ template <typename Component, typename Group = default_group>
 struct component_name;
 
 template <typename Component, typename Group = default_group>
-struct flyweight_component
- : public std::false_type
+struct component_kind
+ : component_kind_normal
 { };
 
 } // namespace exces
@@ -86,10 +87,10 @@ EXCES_ADD_TO_GLOBAL_LIST(EXCES_GROUP_SEL(GROUP), COMPONENT) \
  */
 #define EXCES_REG_FLYWEIGHT_COMPONENT_IN_GROUP(COMPONENT, GROUP) \
 	EXCES_REG_COMPONENT_IN_GROUP_BEGIN(COMPONENT, GROUP) \
-	template <> struct flyweight_component<\
+	template <> struct component_kind<\
 		COMPONENT, \
 		EXCES_GROUP_SEL(GROUP) \
-	> : public std::true_type \
+	> : component_kind_flyweight \
 	{ }; \
 	EXCES_REG_COMPONENT_IN_GROUP_END(COMPONENT, GROUP)
 

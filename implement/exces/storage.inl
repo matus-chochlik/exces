@@ -30,10 +30,10 @@ struct component_storage_entry
 	{ }
 };
 //------------------------------------------------------------------------------
-// heavyweight_storage_vector
+// normal_storage_vector
 //------------------------------------------------------------------------------
 template <typename Group, typename Component>
-class heavyweight_storage_vector
+class normal_storage_vector
  : public component_storage_vector<Group, Component>
 {
 public:
@@ -55,7 +55,7 @@ private:
 	_mutex _acc_mutex;
 public:
 
-	heavyweight_storage_vector(void)
+	normal_storage_vector(void)
 	 : _next_free(-1)
 	 , _vector_refs(0)
 	{ }
@@ -182,7 +182,7 @@ class flyweight_storage_vector
 public:
 	typedef std::size_t component_key;
 private:
-	heavyweight_storage_vector<Group, Component> _ents;
+	normal_storage_vector<Group, Component> _ents;
 	std::map<Component, component_key> _index;
 
 	typedef component_locking<Group, Component> locking;
@@ -280,6 +280,14 @@ public:
 //------------------------------------------------------------------------------
 // component_storage
 //------------------------------------------------------------------------------
+template <typename Component, typename Group>
+flyweight_storage_vector<Group, Component>
+storage_vector_type(component_kind_flyweight);
+//------------------------------------------------------------------------------
+template <typename Component, typename Group>
+normal_storage_vector<Group, Component>
+storage_vector_type(component_kind_normal);
+//------------------------------------------------------------------------------
 template <typename Group>
 struct component_storage_init
 {
@@ -288,17 +296,9 @@ struct component_storage_init
 	template <typename Component>
 	void operator()(mp::identity<Component>) const
 	{
-		typedef typename mp::if_c<
-			flyweight_component<Component, Group>::value,
-			flyweight_storage_vector<
-				Group,
-				typename std::remove_reference<Component>::type
-			>,
-			heavyweight_storage_vector<
-				Group,
-				typename std::remove_reference<Component>::type
-			>
-		>::type csv_t;
+		typedef decltype(storage_vector_type<Component, Group>(
+			typename component_kind<Component, Group>::type()
+		)) csv_t;
 
 		component_storage_vector<Group, Component>* pcsv = new csv_t();
 		

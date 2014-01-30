@@ -98,9 +98,9 @@ remove_collection(any_collection<Group>* cl)
 }
 //------------------------------------------------------------------------------
 template <class Group>
-typename manager<Group>::_class_update_key_list
+typename manager<Group>::_collection_update_key_list
 manager<Group>::
-_begin_class_update(
+_begin_collection_update(
 	typename manager<Group>::_entity_info_map::iterator key
 )
 {
@@ -108,7 +108,7 @@ _begin_class_update(
 	auto e = _collections.end();
 
 	std::size_t j = 0;
-	_class_update_key_list result(_collections.size());
+	_collection_update_key_list result(_collections.size());
 
 	while(i != e)
 	{
@@ -125,9 +125,9 @@ _begin_class_update(
 template <typename Group>
 void
 manager<Group>::
-_finish_class_update(
+_finish_collection_update(
 	typename manager<Group>::_entity_info_map::iterator key,
-	const typename manager<Group>::_class_update_key_list& update_keys
+	const typename manager<Group>::_collection_update_key_list& update_keys
 )
 {
 	assert(_collections.size() == update_keys.size());
@@ -158,7 +158,7 @@ _do_add_seq(
 	>& for_each_seq
 )
 {
-	auto updates = _begin_class_update(ek);
+	auto updates = _begin_collection_update(ek);
 
 	_component_bitset  old_bits = ek->second._component_bits;
 
@@ -200,7 +200,7 @@ _do_add_seq(
 	}
 	swap(new_keys, old_keys);
 
-	_finish_class_update(ek, updates);
+	_finish_collection_update(ek, updates);
 }
 //------------------------------------------------------------------------------
 template <typename Group>
@@ -214,7 +214,7 @@ _do_rem_seq(
 	>& for_each_seq
 )
 {
-	auto updates = _begin_class_update(ek);
+	auto updates = _begin_collection_update(ek);
 
 	if((ek->second._component_bits & rem_bits) != rem_bits)
 	{
@@ -266,7 +266,7 @@ _do_rem_seq(
 
 	swap(new_keys, old_keys);
 
-	_finish_class_update(ek, updates);
+	_finish_collection_update(ek, updates);
 }
 //------------------------------------------------------------------------------
 template <typename Group>
@@ -280,7 +280,7 @@ _do_rep_seq(
 	>& for_each_seq
 )
 {
-	auto updates = _begin_class_update(ek);
+	auto updates = _begin_collection_update(ek);
 
 	if((ek->second._component_bits & rep_bits) != rep_bits)
 	{
@@ -321,7 +321,7 @@ _do_rep_seq(
 	}
 
 
-	_finish_class_update(ek, updates);
+	_finish_collection_update(ek, updates);
 }
 //------------------------------------------------------------------------------
 template <typename Group>
@@ -336,7 +336,7 @@ _do_cpy_seq(
 	>& for_each_seq
 )
 {
-	auto updates = _begin_class_update(t);
+	auto updates = _begin_collection_update(t);
 
 	_entity_info& fei = f->second;
 	_entity_info& tei = t->second;
@@ -358,7 +358,7 @@ _do_cpy_seq(
 	};
 	for_each_seq(copier);
 
-	_finish_class_update(t, updates);
+	_finish_collection_update(t, updates);
 }
 //------------------------------------------------------------------------------
 template <typename Group>
