@@ -193,6 +193,18 @@ class poly_lock
 protected:
 	lock_intf* _pimpl;
 public:
+	poly_lock(void)
+	 : _pimpl(nullptr)
+	{ }
+
+	poly_lock(poly_lock&& tmp)
+	 : _pimpl(tmp._pimpl)
+	{
+		tmp._pimpl = nullptr;
+	}
+
+	poly_lock(const poly_lock&) = delete;
+
 	poly_lock(lock_intf* pimpl)
 	 : _pimpl(pimpl)
 	{
