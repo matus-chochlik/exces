@@ -4,5 +4,16 @@
 #
 cmake_minimum_required(VERSION 2.8)
 
-add_subdirectory(exces)
-add_subdirectory(advanced)
+add_executable(
+	rooms EXCLUDE_FROM_ALL
+	rooms.cpp
+	components.cpp
+	physical.cpp
+	container.cpp
+	input_output.cpp
+	gameplay.cpp
+	description.cpp
+	interaction.cpp
+	initialization.cpp
+)
+add_dependencies(exces-examples rooms)

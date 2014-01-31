@@ -92,17 +92,23 @@ public:
 
 	/// Adds the specified components on this entity
 	template <typename ... Components>
-	implicit_entity_tpl& add(Components ... components)
+	implicit_entity_tpl& add(Components&& ... components)
 	{
-		_m().template add(self(), components...);
+		_m().template add(
+			self(),
+			std::forward<Components>(components)...
+		);
 		return *this;
 	}
 
 	/// Replaces the specified components on this entity
 	template <typename ... Components>
-	implicit_entity_tpl& replace(Components ... components)
+	implicit_entity_tpl& replace(Components&& ... components)
 	{
-		_m().template replace(self(), components...);
+		_m().template replace(
+			self(),
+			std::forward<Components>(components)...
+		);
 		return *this;
 	}
 

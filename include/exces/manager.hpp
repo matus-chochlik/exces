@@ -82,6 +82,16 @@ private:
 	 : mp::typelist<typename _fix1<C>::type...>
 	{ };
 
+	template <typename TL>
+	struct _fixl
+	{
+		template <typename ... C>
+		mp::typelist<typename _fix1<C>::type...>
+		static _do_fix(mp::typelist<C...>);
+
+		typedef decltype(_do_fix(TL())) type;
+	};
+
 	template <typename ... C>
 	struct _sortn
 	 : aux_::sort_components<Group, mp::typelist<C...>>
@@ -155,7 +165,7 @@ private:
 
 	// generates the bitset for the specified components
 	template <typename Sequence>
-	static _component_bitset _gen_bits(const Sequence&)
+	static _component_bitset _gen_bits_seq(const Sequence&)
 	{
 		_component_bitset _bits;
 		_component_bit_setter<true> bset = { _bits };
@@ -164,21 +174,36 @@ private:
 	}
 
 	// gets the bitset for the specified components
+	template <typename ... Components>
+	static const _component_bitset& _get_bits_tl(
+		mp::typelist<Components...> seq
+	)
+	{
+		static _component_bitset _bits = _gen_bits_seq(seq);
+		return _bits;
+	}
+
+	// gets the bitset for the specified components
 	template <typename Sequence>
 	static const _component_bitset& _get_bits(const Sequence&)
 	{
 		typename aux_::sort_components<
 			Group,
-			typename mp::as_typelist<Sequence>::type
-		>::type seq;
-		static _component_bitset _bits = _gen_bits(seq);
-		return _bits;
+			typename _fixl<
+				typename mp::as_typelist<Sequence>::type
+			>::type
+		>::type tl;
+		return _get_bits_tl(tl);
 	}
 
 	template <typename ... Components>
 	static const _component_bitset& _get_bits(void)
 	{
-		return _get_bits(typename _fixn<Components...>::type());
+		typename aux_::sort_components<
+			Group,
+			typename _fixn<Components...>::type
+		>::type tl;
+		return _get_bits_tl(tl);
 	}
 
 	// information about a single entity
@@ -465,9 +490,9 @@ public:
 	 *  @post has_all<Components...>(k)
 	 */
 	template <typename ... Components>
-	manager& add(entity_key k, Components ... c)
+	manager& add(entity_key k, Components&& ... c)
 	{
-		return add_seq(k, mp::make_tuple(c...));
+		return add_seq(k, mp::tie(c...));
 	}
 
 	/// Adds the specified components to the specified entity
@@ -477,9 +502,9 @@ public:
 	 *  @post has_all<Components...>(e)
 	 */
 	template <typename ... Components>
-	manager& add(entity_type e, Components ... c)
+	manager& add(entity_type e, Components&& ... c)
 	{
-		return add_seq(e, mp::make_tuple(c...));
+		return add_seq(e, mp::tie(c...));
 	}
 
 	/// Creates a new entity and adds the specified components
@@ -605,9 +630,9 @@ public:
 	 *  @post has_all<Components...>(k)
 	 */
 	template <typename ... Components>
-	manager& replace(entity_key k, Components ... c)
+	manager& replace(entity_key k, Components&& ... c)
 	{
-		return replace_seq(k, mp::make_tuple(c...));
+		return replace_seq(k, mp::tie(c...));
 	}
 
 	/// Replaces the specified components in the specified entity
@@ -617,9 +642,9 @@ public:
 	 *  @post has_all<Components...>(e)
 	 */
 	template <typename ... Components>
-	manager& replace(entity_type e, Components ... c)
+	manager& replace(entity_type e, Components&& ... c)
 	{
-		return replace_seq(e, mp::make_tuple(c...));
+		return replace_seq(e, mp::tie(c...));
 	}
 
 	template <typename Component>

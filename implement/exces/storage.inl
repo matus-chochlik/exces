@@ -88,8 +88,7 @@ public:
 		if(_next_free >= 0)
 		{
 			result = component_key(_next_free);
-			_ents.at(result)._component =
-				std::move(component);
+			_ents.at(result)._component = std::move(component);
 			_next_free = _ents.at(result)._neg_rc_or_nf;
 			_ents.at(result)._neg_rc_or_nf = -1;
 		}

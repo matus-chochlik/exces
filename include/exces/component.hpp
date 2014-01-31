@@ -106,14 +106,14 @@ public:
 		typedef component_ptr type;
 
 		component_ptr(
-			M* pmanager,
-			S* pstorage,
+			M& rmanager,
+			S& rstorage,
 			EK ekey,
 			CK ckey
-		): Component(pstorage->template access<Component>(ckey))
-		 , _exces_aux_pmanager(pmanager)
+		): Component(rstorage.template access<Component>(ckey))
+		 , _exces_aux_pmanager(&rmanager)
+		 , _exces_aux_pstorage(&rstorage)
 		 , _exces_aux_ekey(ekey)
-		 , _exces_aux_pstorage(pstorage)
 		 , _exces_aux_ckey(ckey)
 		{ }
 
@@ -132,7 +132,7 @@ public:
 		{
 			if(_exces_aux_pmanager && _exces_aux_pstorage)
 			{
-				if(temp() != orig())
+				if(!(temp() == orig()))
 				{
 					_exces_aux_pmanager->replace_component_at(
 						_exces_aux_ekey,
@@ -374,7 +374,7 @@ public:
 		Access
 	> access_op;
 
-	/// Returns a reference that allows to change the managed component
+	/// Returns a reference to the managed component with specified Access
 	access_op get(void)
 	{
 		assert(is_valid());

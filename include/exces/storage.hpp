@@ -86,7 +86,8 @@ private:
 	component_storage_vector<Group, Component>& _store_of(void)
 	{
 		component_storage_vector<Group, Component>* _pcsv = mp::get<
-			component_id<Component, Group>::value>(_store);
+			component_id<Component, Group>::value
+		>(_store);
 		assert(_pcsv != nullptr);
 		return *_pcsv;
 	}
