@@ -46,6 +46,8 @@ bool put_into(intity c, intity i)
 	{
 		if(auto i_phy_obj = i.cref<physical_object>())
 		{
+			if(c_cont->max_items <= c_cont->items.size())
+				return false;
 			if(c_cont->rem_weight() < i_phy_obj->weight)
 				return false;
 			if(c_cont->rem_volume() < i_phy_obj->volume)

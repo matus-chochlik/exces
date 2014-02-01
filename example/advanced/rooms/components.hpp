@@ -11,6 +11,7 @@
 
 #include <exces/manager.hpp>
 
+#include "item_type.hpp"
 #include "name_desc.hpp"
 #include "physical.hpp"
 #include "container.hpp"
@@ -18,6 +19,8 @@
 #include "locking.hpp"
 #include "input_output.hpp"
 #include "actor.hpp"
+
+EXCES_REG_FLYWEIGHT_COMPONENT(item_type)
 
 EXCES_REG_COMPONENT(name)
 EXCES_REG_COMPONENT(description)
@@ -30,7 +33,6 @@ EXCES_REG_COMPONENT(container)
 
 EXCES_REG_COMPONENT(location)
 EXCES_REG_COMPONENT(portal)
-EXCES_REG_COMPONENT(door)
 EXCES_REG_FLYWEIGHT_COMPONENT(key)
 EXCES_REG_COMPONENT(lockable)
 

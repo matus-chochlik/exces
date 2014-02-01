@@ -18,6 +18,7 @@ struct actor
 
 	std::vector<entity> visible_entities;
 
+	intity hands;
 	std::vector<entity> gear;
 };
 

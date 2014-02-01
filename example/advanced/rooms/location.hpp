@@ -29,8 +29,4 @@ struct portal
 	{ }
 };
 
-struct door
-{
-};
-
 #endif // include guard

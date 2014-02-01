@@ -15,13 +15,15 @@
 
 struct container
 {
+	unsigned max_items;
 	float max_weight; // [kg]
-	float max_volume; // [m^3]
+	float max_volume; // [dm^3]
 	float grow_factor;
 	std::set<entity> items;
 
-	container(float mw, float mv, float gf)
-	 : max_weight(mw)
+	container(unsigned mi, float mw, float mv, float gf)
+	 : max_items(mi)
+	 , max_weight(mw)
 	 , max_volume(mv)
 	 , grow_factor(gf)
 	{ }
