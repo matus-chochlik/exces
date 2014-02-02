@@ -19,7 +19,7 @@ struct container
 	float max_weight; // [kg]
 	float max_volume; // [dm^3]
 	float grow_factor;
-	std::set<entity> items;
+	std::set<intity> items;
 
 	container(unsigned mi, float mw, float mv, float gf)
 	 : max_items(mi)
@@ -36,5 +36,6 @@ struct container
 
 bool put_into(intity cont, intity item);
 
+extern bool container_contains(intity c, std::function<bool(entity)> pred);
 
 #endif // include guard

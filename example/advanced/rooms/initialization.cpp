@@ -28,6 +28,14 @@ void init_game(game_data& game)
 	{
 		a_key.add(name("key"));
 	}
+	intity a_hoodie;
+	{
+		a_hoodie.add(name("hoodie"));
+	}
+	intity some_trousers;
+	{
+		some_trousers.add(name("pair of trousers"));
+	}
 
 	intity toy_shovel;
 	{
@@ -135,6 +143,41 @@ void init_game(game_data& game)
 				item_type(a_door),
 				lockable(no_key_patt, 1000, true)
 			);
+
+			intity bathroom1;
+			{
+				bathroom1.add(
+					name("ground floor bathroom"),
+					location()
+				);
+				hlr->locations.insert(bathroom1);
+				auto blr = bathroom1.ref<location>();
+
+				intity wicker_basket;
+				{
+					wicker_basket.add(
+						name("wicker basket"),
+						container(100, 15.0f, 40.0f, 0.0f),
+						physical_object(0.7f, 39.0f)
+					);
+					auto wbcr = wicker_basket.ref<container>();
+
+					intity hoodie;
+					{
+						hoodie.add(
+							item_type(a_hoodie),
+							container(30, 2.0f, 1.0f, 0.1f),
+							physical_object(0.2f, 1.4f),
+							gear_kind(body_part::torso)
+						);
+					}
+					wbcr->items.insert(hoodie);
+				}
+			}
+			intity().add(
+				portal(hall, bathroom1),
+				item_type(a_door)
+			);
 		}
 
 		intity shed;
@@ -157,6 +200,16 @@ void init_game(game_data& game)
 		intity().add(portal(yard, sandbox));
 	}
 
+	intity neckstrap;
+	{
+		neckstrap.add(
+			name("blue neckstrap"),
+			physical_object(0.01f, 0.015f),
+			container(5, 0.3f, 0.3f, 0.0f),
+			gear_kind(body_part::neck)
+		);
+	}
+
 	intity veranda_door_key;
 	{
 		veranda_door_key.add(
@@ -165,6 +218,7 @@ void init_game(game_data& game)
 			physical_object(0.005f, 0.005f)
 		);
 	}
+	neckstrap.ref<container>()->items.insert(veranda_door_key);
 
 	intity basement_door_key;
 	{
@@ -179,25 +233,83 @@ void init_game(game_data& game)
 
 	game.player.add(name("Player"), actor());
 	{
-		intity throusers;
-		throusers.add(
-			name("throusers"),
-			container(30, 2.0f, 0.5f, 0.0f)
+		intity trousers;
+		trousers.add(
+			item_type(some_trousers),
+			container(20, 1.5f, 0.5f, 0.0f),
+			gear_kind(body_part::legs)
 		);
 		intity shirt;
 		shirt.add(
 			name("hawaii shirt"),
-			container(15, 0.5f, 0.3f, 0.0f)
+			container(15, 0.5f, 0.3f, 0.0f),
+			gear_kind(body_part::torso)
 		);
 
-		auto tcr = throusers.ref<container>();
-		tcr->items.insert(veranda_door_key);
-
 		auto par = game.player.ref<actor>();
+
+		intity head;
+		{
+			head.add(
+				name("head"),
+				gear_slots(1)
+			);
+			par->body_parts[body_part::head] = head;
+		}
+
+		intity neck;
+		{
+			neck.add(
+				name("neck"),
+				gear_slots(1)
+			);
+			par->body_parts[body_part::neck] = neck;
+			par->body_parts[body_part::neck]
+				.ref<gear_slots>()->items.insert(neckstrap);
+		}
+
+		intity hands;
+		{
+			hands.add(
+				name("hands"),
+				gear_slots(2),
+				container(2, 20.0f, 40.0f, 0.0f)
+			);
+			par->body_parts[body_part::hands] = hands;
+		}
+
+		intity legs;
+		{
+			legs.add(
+				name("legs"),
+				gear_slots(1)
+			);
+			par->body_parts[body_part::legs] = legs;
+			par->body_parts[body_part::legs]
+				.ref<gear_slots>()->items.insert(trousers);
+		}
+
+		intity torso;
+		{
+			torso.add(
+				name("torso"),
+				gear_slots(3)
+			);
+			par->body_parts[body_part::torso] = torso;
+			par->body_parts[body_part::torso]
+				.ref<gear_slots>()->items.insert(shirt);
+		}
+
+		intity back;
+		{
+			back.add(
+				name("back"),
+				gear_slots(2)
+			);
+			par->body_parts[body_part::back] = back;
+		}
+
 		par->current_location = yard;
-		par->hands.add(name("hands"), container(2, 20.0f, 25.0f, 0.0f));
-		par->gear.push_back(throusers);
-		par->gear.push_back(shirt);
 	}
 
 }

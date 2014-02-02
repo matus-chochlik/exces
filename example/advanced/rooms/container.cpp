@@ -40,6 +40,19 @@ float container::rem_volume(void) const
 	return max_volume-occ_volume();
 }
 
+bool container_contains(intity c, std::function<bool(entity)> pred)
+{
+	if(auto c_cont = c.cref<container>())
+	{
+		for(intity i: c_cont->items)
+		{
+			if(pred(i) || container_contains(i, pred))
+				return true;
+		}
+	}
+	return false;
+}
+
 bool put_into(intity c, intity i)
 {
 	if(auto c_cont = c.ref<container>())

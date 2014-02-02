@@ -27,25 +27,45 @@ void lock_portal(game_data& game, intity p, intity i, bool lock)
 
 	if(auto i_lock = i.ref<lockable>())
 	{
+		auto key_pattern = i_lock->key_pattern;
+		auto find_key_func =
+		[key_pattern](intity i)->bool
+		{
+			if(auto i_key = i.cref<key>())
+			{
+				if(i_key->pattern == key_pattern)
+				{
+					return true;
+				}
+			}
+			return false;
+		};
 		bool has_key = false;
-		for(intity g: p_actor->gear)
+
+		for(const auto& bpi: p_actor->body_parts)
 		{
 			if(has_key) break;
-			if(auto g_cont = g.ref<container>())
+
+			if(container_contains(bpi.second, find_key_func))
 			{
-				for(intity ci: g_cont->items)
+				has_key = true;
+			}
+
+			intity bp = bpi.second;
+			if(auto bp_gear = bp.cref<gear_slots>())
+			{
+				for(intity gi: bp_gear->items)
 				{
-					if(auto ci_key = ci.ref<key>())
+					if(has_key) break;
+
+					if(container_contains(gi, find_key_func))
 					{
-						if(ci_key->pattern == i_lock->key_pattern)
-						{
-							has_key = true;
-							break;
-						}
+						has_key = true;
 					}
 				}
 			}
 		}
+
 		if(has_key)
 		{
 			i_lock->locked = lock;
@@ -57,7 +77,7 @@ void lock_portal(game_data& game, intity p, intity i, bool lock)
 				if(lock) p_io->out << " locked.";
 				else p_io->out << " unlocked.";
 				
-				p_io->out << std::endl;
+				p_io->newl();
 			}
 		}
 		else
@@ -68,7 +88,7 @@ void lock_portal(game_data& game, intity p, intity i, bool lock)
 				p_io->out << "You don't have the key to ";
 				brief_description(game, p, i);
 				p_io->out << "!";
-				p_io->out << std::endl;
+				p_io->newl();
 			}
 		}
 	}
@@ -91,7 +111,7 @@ void go_through_portal(game_data& game, intity p, intity i)
 				p_io->delimit();
 				brief_description(game, p, i);
 				p_io->out << " is locked.";
-				p_io->out << std::endl;
+				p_io->newl();
 			}
 			return;
 		}
@@ -121,7 +141,8 @@ void use_entity_io(game_data& game, intity p, intity i)
 
 	char def_action = '\0';
 	std::string allowed;
-	p_io->out << " Actions:" << std::endl;
+	p_io->out << " Actions:";
+	p_io->newl();
 
 	if(i.has<portal>())
 	{
@@ -131,21 +152,25 @@ void use_entity_io(game_data& game, intity p, intity i)
 			{
 				allowed.push_back('U');
 				if(!def_action) def_action = 'U';
-				p_io->out << "  U   Unlock" << std::endl;
+				p_io->out << "  U   Unlock";
+				p_io->newl();
 			}
 			else
 			{
 				allowed.push_back('L');
-				p_io->out << "  L   Lock" << std::endl;
+				p_io->out << "  L   Lock";
+				p_io->newl();
 			}
 		}
 		allowed.push_back('G');
 		if(!def_action) def_action = 'G';
-		p_io->out << "  G   Go through" << std::endl;
+		p_io->out << "  G   Go through";
+		p_io->newl();
 	}
 
 	allowed.push_back('X');
-	p_io->out << "  X   Cancel" << std::endl;
+	p_io->out << "  X   Cancel";
+	p_io->newl();
 
 	p_io->delimit();
 
@@ -192,7 +217,7 @@ void use_entity_io(game_data& game, intity p, intity i)
 		p_io->out << "Invalid option '";
 		p_io->out << line.str();
 		p_io->out << "', try again.";
-		p_io->out << std::endl;
+		p_io->newl();
 	}
 }
 

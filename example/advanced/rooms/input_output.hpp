@@ -26,6 +26,7 @@ struct io
 	io(io&&) = default;
 
 	io& operator = (io&&);
+	void newl(void) const;
 	void new_screen(void) const;
 	void delimit(void) const;
 };

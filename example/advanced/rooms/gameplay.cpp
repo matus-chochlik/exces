@@ -35,7 +35,7 @@ void entered_location(game_data& game, intity p)
 			brief_description(game, p, p);
 			p_io->out << " is in ";
 			brief_description(game, p, p_actor->current_location);
-			p_io->out << std::endl;
+			p_io->newl();
 		}
 	}
 }
@@ -98,19 +98,22 @@ bool step_game(game_data& game, intity player)
 
 	if(!p_actor->visible_entities.empty())
 	{
-		p_io->out << " Entities:" << std::endl;
+		p_io->out << " Entities:";
+		p_io->newl();
 		std::size_t i=0;
 		for(const entity& e: p_actor->visible_entities)
 		{
 			p_io->out << "  " << i++ << ": ";
 			brief_description(game, player, e);
-			p_io->out << std::endl;
+			p_io->newl();
 		}
 		p_io->delimit();
 	}
 
-	p_io->out << " Actions:" << std::endl;
-	p_io->out << "  L   Look around" << std::endl;
+	p_io->out << " Actions:";
+	p_io->newl();
+	p_io->out << "  L   Look around";
+	p_io->newl();
 	if(!p_actor->visible_entities.empty())
 	{
 		auto n = p_actor->visible_entities.size()-1;
@@ -122,7 +125,7 @@ bool step_game(game_data& game, intity player)
 			p_io->out << n;
 		}
 		p_io->out << ")";
-		p_io->out << std::endl;
+		p_io->newl();
 		//examine
 		p_io->out << "  En  Examine item number n = (0";
 		if(n > 0)
@@ -131,9 +134,12 @@ bool step_game(game_data& game, intity player)
 			p_io->out << n;
 		}
 		p_io->out << ")";
-		p_io->out << std::endl;
+		p_io->newl();
 	}
-	p_io->out << "  X   Exit game" << std::endl;
+	p_io->out << "  I   Enter inventory";
+	p_io->newl();
+	p_io->out << "  X   Exit game";
+	p_io->newl();
 	p_io->delimit();
 
 	std::stringbuf line;
@@ -164,7 +170,8 @@ bool step_game(game_data& game, intity player)
 		case 'X':
 		case 'x':
 		{
-			p_io->out << "Quitting" << std::endl;
+			p_io->out << "Quitting";
+			p_io->newl();
 			return false;
 			break;
 		}
@@ -172,6 +179,12 @@ bool step_game(game_data& game, intity player)
 		case 'l':
 		{
 			look_around(game, game.player);
+			break;
+		}
+		case 'I':
+		case 'i':
+		{
+			use_inventory(game, game.player);
 			break;
 		}
 		case 'E':
@@ -182,7 +195,7 @@ bool step_game(game_data& game, intity player)
 			{
 				invalid_option = true;
 			}
-			p_io->out << std::endl;
+			p_io->newl();
 			break;
 		}
 		case 'U':
@@ -208,7 +221,7 @@ bool step_game(game_data& game, intity player)
 		p_io->out << "Invalid option '";
 		p_io->out << line.str();
 		p_io->out << "', try again.";
-		p_io->out << std::endl;
+		p_io->newl();
 	}
 	return true;
 }

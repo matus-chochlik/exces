@@ -65,7 +65,7 @@ void entity_description_io(
 			some_name = true;
 		}
 	}
-	
+
 	if(auto i_portal = i.cref<portal>())
 	{
 		if(!some_name)
@@ -103,12 +103,36 @@ void entity_description_io(
 
 	if(full_desc)
 	{
+		if(auto i_gear = i.cref<gear_slots>())
+		{
+			auto i_gear_l = i_gear.get();
+			if(!i_gear_l->items.empty())
+			{
+				p_io->out << " occupied by ";
+				auto ii = i_gear_l->items.begin();
+				if(ii != i_gear_l->items.end())
+				{
+					brief_description(game, p, *ii);
+					++ii;
+					while(ii != i_gear_l->items.end())
+					{
+						auto ji = ii++;
+						if(ii == i_gear_l->items.end())
+							p_io->out << " and ";
+						else p_io->out << ", ";
+						brief_description(game, p, *ji);
+					}
+				}
+				p_io->out << ".";
+				some_desc = true;
+			}
+		}
 		if(auto i_cont = i.cref<container>())
 		{
 			auto i_cont_l = i_cont.get();
 			if(!i_cont_l->items.empty())
 			{
-				p_io->out << " which contains ";
+				p_io->out << " containing ";
 				auto ii = i_cont_l->items.begin();
 				if(ii != i_cont_l->items.end())
 				{
@@ -124,12 +148,13 @@ void entity_description_io(
 					}
 				}
 				p_io->out << ".";
+				some_desc = true;
 			}
 		}
 
 		if(auto i_desc = i.ref<description>())
 		{
-			if(some_desc) p_io->out << std::endl;
+			if(some_desc) p_io->newl();
 			p_io->out << i_desc.get().self();
 			some_desc = true;
 		}

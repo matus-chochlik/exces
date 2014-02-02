@@ -16,6 +16,11 @@ io& io::operator = (io&&)
 	assert(!"io cannot be reassigned!");
 }
 
+void io::newl(void) const
+{
+	out << std::endl;
+}
+
 void io::new_screen(void) const
 {
 	for(unsigned i=0; i!=8; ++i)

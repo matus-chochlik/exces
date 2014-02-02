@@ -37,6 +37,9 @@ EXCES_REG_FLYWEIGHT_COMPONENT(key)
 EXCES_REG_COMPONENT(lockable)
 
 EXCES_REG_COMPONENT(io)
+
+EXCES_REG_FLYWEIGHT_COMPONENT(gear_kind)
+EXCES_REG_COMPONENT(gear_slots)
 EXCES_REG_COMPONENT(actor)
 
 extern void use_components(void);

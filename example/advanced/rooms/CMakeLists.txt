@@ -7,6 +7,7 @@ cmake_minimum_required(VERSION 2.8)
 add_executable(
 	rooms EXCLUDE_FROM_ALL
 	rooms.cpp
+	actor.cpp
 	components.cpp
 	physical.cpp
 	container.cpp
