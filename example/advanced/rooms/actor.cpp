@@ -9,7 +9,6 @@
 
 #include "components.hpp"
 #include "gameplay.hpp"
-#include "description.hpp"
 
 void use_inventory_io(game_data& game, intity p)
 {

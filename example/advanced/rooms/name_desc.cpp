@@ -1,6 +1,6 @@
 /**
- *  @example advanced/rooms/description.cpp
- *  @brief Implementation of entity description.
+ *  @example advanced/rooms/name_desc.cpp
+ *  @brief Implementation of entity name and description functions.
  *
  *  Copyright 2012-2014 Matus Chochlik. Distributed under the Boost
  *  Software License, Version 1.0. (See accompanying file
@@ -11,7 +11,7 @@
 
 #include "components.hpp"
 #include "gameplay.hpp"
-#include "description.hpp"
+#include "name_desc.hpp"
 
 
 void entity_description_io(

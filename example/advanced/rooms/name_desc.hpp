@@ -26,4 +26,7 @@ struct description : std::string
 	{ }
 };
 
+extern void brief_description(game_data&, intity player, intity item);
+extern void full_description(game_data&, intity player, intity item);
+
 #endif // include guard

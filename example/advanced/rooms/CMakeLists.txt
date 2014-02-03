@@ -12,8 +12,8 @@ add_executable(
 	physical.cpp
 	container.cpp
 	input_output.cpp
+	name_desc.cpp
 	gameplay.cpp
-	description.cpp
 	interaction.cpp
 	initialization.cpp
 )

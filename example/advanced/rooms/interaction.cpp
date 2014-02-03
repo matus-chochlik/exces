@@ -10,7 +10,6 @@
 #include "components.hpp"
 #include "gameplay.hpp"
 #include "interaction.hpp"
-#include "description.hpp"
 
 #include <sstream>
 #include <iostream>

@@ -9,7 +9,6 @@
 
 #include "components.hpp"
 #include "gameplay.hpp"
-#include "description.hpp"
 #include "interaction.hpp"
 
 #include <exces/entity_io.hpp>
