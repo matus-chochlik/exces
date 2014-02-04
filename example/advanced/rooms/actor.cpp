@@ -28,6 +28,7 @@ void use_inventory_io(game_data& game, intity p)
 	p_io->newl();
 
 	unsigned si = 0;
+	unsigned ci = 0;
 	unsigned ii = 0;
 
 	for(const auto& bpi: p_actor->body_parts)
@@ -39,8 +40,30 @@ void use_inventory_io(game_data& game, intity p)
 		full_description(game, p, bp);
 		p_io->newl();
 
-		auto bp_cont = bp.ref<container>();
-		if(!bp_cont) continue;
+		auto bp_gs = bp.ref<gear_slots>();
+		if(!bp_gs) continue;
+
+		for(intity gs: bp_gs->items)
+		{
+			auto gs_cont = gs.ref<container>();
+			if(!gs_cont) continue;
+			if(gs_cont->items.empty()) continue;
+
+			p_io->out << "   Container ";
+			p_io->out << ci++;
+			p_io->out << ": ";
+			brief_description(game, p, gs);
+			p_io->newl();
+
+			for(intity gs_ci: gs_cont->items)
+			{
+				p_io->out << "    Item ";
+				p_io->out << ii++;
+				p_io->out << ": ";
+				brief_description(game, p, gs_ci);
+				p_io->newl();
+			}
+		}
 	}
 
 	p_io->delimit();
