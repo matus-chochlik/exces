@@ -122,7 +122,7 @@ struct lock_intf
 };
 
 template <typename ... Lockables>
-class group_lock
+class tuple_lock
 {
 private:
 	mp::tuple<Lockables...> _lockables;
@@ -160,9 +160,9 @@ private:
 		}
 	};
 public:
-	group_lock(void) = default;
-	group_lock(group_lock&&) = default;
-	group_lock(Lockables&& ... lockables)
+	tuple_lock(void) = default;
+	tuple_lock(tuple_lock&&) = default;
+	tuple_lock(Lockables&& ... lockables)
 	 : _lockables(std::move(lockables)...)
 	{ }
 
@@ -183,9 +183,9 @@ public:
 };
 
 template <typename ... Lockables>
-inline group_lock<Lockables...> make_group_lock(Lockables&& ... lockables)
+inline tuple_lock<Lockables...> make_tuple_lock(Lockables&& ... lockables)
 {
-	return group_lock<Lockables...>(std::move(lockables)...);
+	return tuple_lock<Lockables...>(std::move(lockables)...);
 }
 
 class poly_lock

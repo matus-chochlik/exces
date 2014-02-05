@@ -857,24 +857,24 @@ public:
 	 *  @see raw_access
 	 */
 	template <typename ... C>
-	group_lock<typename mp::instead<C, poly_lock>::type...>
+	tuple_lock<typename mp::instead<C, poly_lock>::type...>
 	lifetime_lock(void)
 	{
-		return group_lock<
+		return tuple_lock<
 			typename mp::instead<C,poly_lock>::type...
 		>(_storage.template lifetime_lock<typename _fix1<C>::type>()...);
 	}
 
 	template <typename ... C>
 	auto raw_access_lock_tl(mp::typelist<C...>) -> decltype(
-		make_group_lock(
+		make_tuple_lock(
 			_storage.template access_lock<typename _fix1<C>::type>(
 				get_component_access<C>()
 			)...
 		)
 	)
 	{
-		return make_group_lock(
+		return make_tuple_lock(
 			_storage.template access_lock<typename _fix1<C>::type>(
 				get_component_access<C>()
 			)...
