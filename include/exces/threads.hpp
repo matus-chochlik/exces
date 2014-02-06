@@ -108,8 +108,12 @@ struct std_component_locking
 	};
 };
 
+template <typename Group>
+struct group_locking : fake_component_locking
+{ };
+
 template <typename Group, typename Component>
-struct component_locking : fake_component_locking
+struct component_locking : group_locking<Group>
 { };
 
 struct lock_intf
