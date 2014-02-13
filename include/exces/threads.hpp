@@ -12,6 +12,7 @@
 
 #include <exces/group.hpp>
 #include <mutex>
+#include <exces/shared_mutex.hpp> // TODO: use C++14 if available
 #include <cassert>
 
 namespace exces {
@@ -89,10 +90,12 @@ struct fake_component_locking
 struct std_component_locking
 {
 	// TODO std::shared_mutex where available
-	typedef std::mutex shared_mutex;
+	typedef exces::shared_mutex shared_mutex;
+
 	typedef std::unique_lock<shared_mutex> unique_lock;
+
 	// TODO std::shared_lock where available
-	typedef std::unique_lock<shared_mutex> shared_lock;
+	typedef exces::shared_lock<shared_mutex> shared_lock;
 
 	template <typename Lockable>
 	struct lock_guard : std::lock_guard<Lockable>
