@@ -17,6 +17,7 @@
 
 namespace exces {
 
+struct fake_once_flag { };
 
 struct fake_shared_mutex
 {
@@ -85,6 +86,14 @@ struct fake_component_locking
 		 : fake_lock_guard<Lockable>(l)
 		{ }
 	};
+
+	typedef fake_once_flag once_flag;
+
+	template <typename Function, typename ... Args>
+	static void call_once(once_flag&, Function&& func, Args&& ... args)
+	{
+		func(std::forward<Args>(args)...);
+	}
 };
 
 struct std_component_locking
@@ -109,6 +118,19 @@ struct std_component_locking
 		 : std::lock_guard<Lockable>(l)
 		{ }
 	};
+
+	typedef std::once_flag once_flag;
+
+	template <typename Function, typename ... Args>
+	static void call_once(once_flag& once, Function&& func, Args&& ... args)
+	{
+		std::call_once(
+			once,
+			std::forward<Function>(func),
+			std::forward<Args>(args)...
+		);
+	}
+
 };
 
 template <typename Group>

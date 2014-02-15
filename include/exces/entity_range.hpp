@@ -26,6 +26,9 @@ class entity_range_tpl
  : public BaseRange
 {
 private:
+	typedef typename group_locking<Group>::shared_lock _lock_t;
+	_lock_t _lock;
+
 	manager<Group>& _manager;
 	
 	typedef typename manager<Group>::entity_key entity_key;
@@ -51,10 +54,12 @@ private:
 	}
 public:
 	entity_range_tpl(
+		_lock_t&& lock,
 		manager<Group>& man,
 		const BaseRange& base,
 		const _pred_t& pred = _pred_t()
 	): BaseRange(base)
+	 , _lock(std::move(lock))
 	 , _manager(man)
 	 , _pred(pred)
 	{

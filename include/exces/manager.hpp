@@ -108,6 +108,15 @@ private:
 	// an entity has
 	typedef aux_::component_bitset<Group> _component_bitset;
 
+	// mutex and lock types
+	typedef group_locking<Group> _locking;
+	typedef typename _locking::shared_mutex _shared_mutex;
+	typedef typename _locking::shared_lock _shared_lock;
+	typedef typename _locking::unique_lock _unique_lock;
+	typedef typename _locking::once_flag _once_flag;
+
+	// the mutex synchronizing access to manager's internal data
+	_shared_mutex _mutex;
 
 	// converts static group-unique component-ids for a bitset with
 	// a particular combination of bits set into a vector of indices
@@ -173,14 +182,28 @@ private:
 		return std::move(_bits);
 	}
 
+	// generates and gets the bitset for the specified components
+	template <typename ... Components>
+	static const _component_bitset& _gen_and_get_bits_tl(
+		mp::typelist<Components...> seq
+	)
+	{
+		static _component_bitset _bits = _gen_bits_seq(seq);
+		return _bits;
+	}
+
 	// gets the bitset for the specified components
 	template <typename ... Components>
 	static const _component_bitset& _get_bits_tl(
 		mp::typelist<Components...> seq
 	)
 	{
-		static _component_bitset _bits = _gen_bits_seq(seq);
-		return _bits;
+		static _once_flag init_once;
+		_locking::call_once(
+			init_once,
+			[seq](){ _gen_and_get_bits_tl(seq); }
+		);
+		return _gen_and_get_bits_tl(seq);
 	}
 
 	// gets the bitset for the specified components
@@ -383,6 +406,10 @@ public:
 		std::size_t n = distance(cur, end);
 		std::vector<entity_key> result(n);
 		_entity_info init;
+
+		// exclusive access to the entity map is required
+		_unique_lock ul(_mutex);
+
 		for(std::size_t i=0; i!=n; ++i)
 		{
 			assert(cur != end);
@@ -391,6 +418,7 @@ public:
 			).first;
 			++cur;
 		}
+		ul.unlock();
 		return std::move(result);
 	}
 
@@ -752,6 +780,8 @@ public:
 	{
 		typedef typename _fix1<Component>::type fixed_C;
 		const std::size_t cid = component_id<fixed_C, Group>::value;
+
+		_shared_lock sl(_mutex);
 		assert(ek != _entities.end());
 		return ek->second._component_bits.test(cid);
 	}
@@ -762,6 +792,8 @@ public:
 	{
 		typedef typename _fix1<Component>::type fixed_C;
 		const std::size_t cid = component_id<fixed_C, Group>::value;
+
+		_shared_lock sl(_mutex);
 		typename _entity_info_map::const_iterator ek = _entities.find(e);
 		if(ek == _entities.end()) return false;
 		return ek->second._component_bits.test(cid);
@@ -772,6 +804,8 @@ public:
 	bool has_all_seq(entity_key ek, Sequence seq = Sequence())
 	{
 		_component_bitset _req_bits = _get_bits(seq);
+
+		_shared_lock sl(_mutex);
 		assert(ek != _entities.end());
 		return ((ek->second._component_bits & _req_bits) == _req_bits);
 	}
@@ -781,6 +815,8 @@ public:
 	bool has_all_seq(entity_type e, Sequence seq = Sequence())
 	{
 		_component_bitset _req_bits = _get_bits(seq);
+
+		_shared_lock sl(_mutex);
 		typename _entity_info_map::const_iterator ek = _entities.find(e);
 		if(ek == _entities.end()) return false;
 		return ((ek->second._component_bits & _req_bits) == _req_bits);
@@ -807,6 +843,8 @@ public:
 	bool has_some_seq(entity_key ek, Sequence seq = Sequence())
 	{
 		_component_bitset _req_bits = _get_bits(seq);
+
+		_shared_lock sl(_mutex);
 		assert(ek != _entities.end());
 		return (ek->second._component_bits & _req_bits).any();
 	}
@@ -816,6 +854,8 @@ public:
 	bool has_some_seq(entity_type e, Sequence seq = Sequence())
 	{
 		_component_bitset _req_bits = _get_bits(seq);
+
+		_shared_lock sl(_mutex);
 		typename _entity_info_map::const_iterator ek = _entities.find(e);
 		if(ek == _entities.end()) return false;
 		return (ek->second._component_bits & _req_bits).any();
@@ -960,6 +1000,8 @@ public:
 		typedef typename _fix1<Component>::type _fixed_C;
 		std::size_t cid = component_id<_fixed_C, Group>::value;
 		typename _component_storage::component_key key;
+
+		_shared_lock sl(_mutex);
 		assert(ek->second._component_bits.test(cid));
 
 		typename component_index<_fixed_C>::type cidx =
@@ -1013,6 +1055,8 @@ public:
 	{
 		std::size_t cid = component_id<Component, Group>::value;
 		typename _component_storage::component_key key;
+
+		_shared_lock sl(_mutex);
 		if(ek->second._component_bits.test(cid))
 		{
 
@@ -1188,7 +1232,9 @@ public:
 		>& predicate
 	)
 	{
+		_shared_lock sl(_mutex);
 		return entity_range(
+			std::move(sl),
 			*this, 
 			manager_entity_range<Group>(
 				_entities.begin(),

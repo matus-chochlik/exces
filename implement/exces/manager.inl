@@ -17,6 +17,8 @@ typename manager<Group>::_entity_info_map::iterator
 manager<Group>::
 _find_entity(typename entity<Group>::type e)
 {
+	_shared_lock sl(_mutex);
+
 	typename _entity_info_map::iterator p = _entities.find(e);
 	
 	if(p == _entities.end())
@@ -34,6 +36,8 @@ void
 manager<Group>::
 add_collection(any_collection<Group>* cl)
 {
+	_unique_lock ul(_mutex);
+
 	assert(cl != nullptr);
 	assert(std::find(
 		_collections.begin(),
@@ -62,6 +66,8 @@ move_collection(
 	any_collection<Group>* new_cl
 )
 {
+	_unique_lock ul(_mutex);
+
 	assert(old_cl != nullptr);
 	assert(new_cl != nullptr);
 	assert(std::find(
@@ -88,6 +94,8 @@ void
 manager<Group>::
 remove_collection(any_collection<Group>* cl)
 {
+	_unique_lock ul(_mutex);
+
 	auto p = std::find(
 		_collections.begin(),
 		_collections.end(),
@@ -104,6 +112,8 @@ _begin_collection_update(
 	typename manager<Group>::_entity_info_map::iterator key
 )
 {
+	// the caller must have exclusive lock on _mutex
+
 	auto i = _collections.begin();
 	auto e = _collections.end();
 
@@ -130,6 +140,8 @@ _finish_collection_update(
 	const typename manager<Group>::_collection_update_key_list& update_keys
 )
 {
+	// the caller must have exclusive lock on _mutex
+
 	assert(_collections.size() == update_keys.size());
 
 	auto i = _collections.begin();
@@ -158,6 +170,8 @@ _do_add_seq(
 	>& for_each_seq
 )
 {
+	_unique_lock ul(_mutex);
+
 	auto updates = _begin_collection_update(ek);
 
 	_component_bitset  old_bits = ek->second._component_bits;
@@ -214,6 +228,8 @@ _do_rem_seq(
 	>& for_each_seq
 )
 {
+	_unique_lock ul(_mutex);
+
 	auto updates = _begin_collection_update(ek);
 
 	if((ek->second._component_bits & rem_bits) != rem_bits)
@@ -280,6 +296,8 @@ _do_rep_seq(
 	>& for_each_seq
 )
 {
+	_unique_lock ul(_mutex);
+
 	auto updates = _begin_collection_update(ek);
 
 	if((ek->second._component_bits & rep_bits) != rep_bits)
@@ -336,6 +354,8 @@ _do_cpy_seq(
 	>& for_each_seq
 )
 {
+	_unique_lock ul(_mutex);
+
 	auto updates = _begin_collection_update(t);
 
 	_entity_info& fei = f->second;
@@ -371,6 +391,8 @@ for_each(
 	)>& function
 )
 {
+	_shared_lock sl(_mutex);
+
 	typename _entity_info_map::iterator
 		i = _entities.begin(),
 		e = _entities.end();
