@@ -201,7 +201,10 @@ private:
 		static _once_flag init_once;
 		_locking::call_once(
 			init_once,
-			[seq](){ _gen_and_get_bits_tl(seq); }
+			[seq](void) -> void
+			{
+				manager::_gen_and_get_bits_tl(seq);
+			}
 		);
 		return _gen_and_get_bits_tl(seq);
 	}

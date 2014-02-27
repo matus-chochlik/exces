@@ -9,6 +9,17 @@
 
 #include "components.hpp"
 #include "gameplay.hpp"
+#include <sstream>
+
+void enter_inventory_io(
+	game_data& game,
+	intity p,
+	std::vector<intity>& slots,
+	std::vector<intity>& containers,
+	std::vector<intity>& items
+)
+{
+}
 
 void use_inventory_io(game_data& game, intity p)
 {
@@ -26,6 +37,8 @@ void use_inventory_io(game_data& game, intity p)
 
 	p_io->out << " Slots:";
 	p_io->newl();
+
+	std::vector<entity> inventory_entities;
 
 	unsigned si = 0;
 	unsigned ci = 0;
@@ -62,11 +75,57 @@ void use_inventory_io(game_data& game, intity p)
 				p_io->out << ": ";
 				brief_description(game, p, gs_ci);
 				p_io->newl();
+				inventory_entities.push_back(gs_ci);
 			}
 		}
 	}
 
 	p_io->delimit();
+
+	p_io->out << " Actions:";
+	p_io->newl();
+
+	auto n = inventory_entities.size()-1;
+	// drop
+	p_io->out << "  Dn  Drop item number n = (0";
+	if(n > 0)
+	{
+		p_io->out << " ... ";
+		p_io->out << n;
+	}
+	p_io->out << ")";
+	p_io->newl();
+	//examine
+	p_io->out << "  En  Examine item number n = (0";
+	if(n > 0)
+	{
+		p_io->out << " ... ";
+		p_io->out << n;
+	}
+	p_io->out << ")";
+	p_io->newl();
+
+	p_io->out << "  X   Exit inventory";
+	p_io->newl();
+	p_io->delimit();
+
+	std::stringbuf line;
+	p_io->in.get(line);
+
+	if(p_io->in.eof()) return;
+	if(p_io->in.bad()) return;
+
+	std::stringstream cmd;
+
+	if(p_io->in.good())
+	{
+		cmd.str(line.str());
+	}
+	else
+	{
+		p_io->in.clear();
+		cmd.str("L");
+	}
 }
 
 void use_inventory(game_data& game, intity player)

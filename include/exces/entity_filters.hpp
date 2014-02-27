@@ -36,6 +36,8 @@ struct entity_with
  : entity_with_seq<mp::typelist<Components...>>
 { };
 
+// Components ...
+
 template <typename Functor, typename ... Components>
 struct func_adaptor_c
 {
@@ -74,6 +76,61 @@ adapt_func(const std::function<void(Components...)>& functor)
 	return adapt_func_c<Components...>(functor);
 }
 
+// Pointers-to-components ...
+
+template <typename Functor, typename ... Components>
+struct func_adaptor_cp
+{
+	Functor _functor;
+
+	func_adaptor_cp(const Functor& functor)
+	 : _functor(functor)
+	{ }
+
+	template <typename Group, typename Component>
+	Component* _get_ptr(
+		manager<Group>& m,
+		typename manager<Group>::entity_key k
+	) const
+	{
+		Component* ptr = nullptr;
+		if(m.template has<Component>(k))
+		{
+			ptr = &m.template raw_access<Component>(k);
+		}
+		return ptr;
+	}
+
+	template <typename Group>
+	void operator()(
+		manager<Group>& m,
+		typename manager<Group>::entity_key k
+	)
+	{
+		if(m.template has_some<Components...>(k))
+		{
+			_functor(_get_ptr<Group, Components>(m, k)...);
+		}
+	}
+};
+
+template <typename ... Components, typename Functor>
+inline
+func_adaptor_cp<Functor, Components...>
+adapt_func_cp(const Functor& functor)
+{
+	return func_adaptor_cp<Functor, Components...>(functor);
+}
+
+template <typename ... Components>
+inline 
+func_adaptor_cp<std::function<void(Components*...)>, Components...>
+adapt_func(const std::function<void(Components*...)>& functor)
+{
+	return adapt_func_cp<Components...>(functor);
+}
+
+// Component-member-variables
 
 template <typename Functor, typename MemVarType, typename Component>
 struct func_adaptor_cmv
@@ -114,6 +171,8 @@ adapt_func_cmv(MemVarType Component::*mem_var_ptr, const Functor& functor)
 		mem_var_ptr
 	);
 }
+
+// Manager, Key, Components ...
 
 template <typename Functor, typename ... Components>
 struct func_adaptor_mkc
@@ -167,6 +226,74 @@ func_adaptor_mkc<
 {
 	return adapt_func_mkc<Components...>(functor);
 }
+
+// Manager, Key, Pointers-to-components ...
+
+template <typename Functor, typename ... Components>
+struct func_adaptor_mkcp
+{
+	Functor _functor;
+
+	func_adaptor_mkcp(const Functor& functor)
+	 : _functor(functor)
+	{ }
+
+	template <typename Group, typename Component>
+	Component* _get_ptr(
+		manager<Group>& m,
+		typename manager<Group>::entity_key k
+	) const
+	{
+		Component* ptr = nullptr;
+		if(m.template has<Component>(k))
+		{
+			ptr = &m.template raw_access<Component>(k);
+		}
+		return ptr;
+	}
+
+	template <typename Group>
+	void operator()(
+		manager<Group>& m,
+		typename manager<Group>::entity_key k
+	)
+	{
+		if(m.template has_some<Components...>(k))
+		{
+			_functor(m, k, _get_ptr<Group, Components>(m, k)...);
+		}
+	}
+};
+
+template <typename ... Components, typename Functor>
+inline
+func_adaptor_mkcp<Functor, Components...>
+adapt_func_mkcp(const Functor& functor)
+{
+	return func_adaptor_mkcp<Functor, Components...>(functor);
+}
+
+template <typename Group, typename ... Components>
+inline 
+func_adaptor_mkcp<
+	std::function<void(
+		manager<Group>&,
+		typename manager<Group>::entity_key,
+		Components*...
+	)>,
+	Components...
+> adapt_func(
+	const std::function<void(
+		manager<Group>&,
+		typename manager<Group>::entity_key,
+		Components*...
+	)>& functor
+)
+{
+	return adapt_func_mkcp<Components...>(functor);
+}
+
+// Manager, Key, Entity, Components ...
 
 template <typename Functor, typename ... Components>
 struct func_adaptor_mkec
