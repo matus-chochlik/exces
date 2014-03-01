@@ -59,7 +59,7 @@ public:
 	}
 };
 
-/// Base interface for entity collectionad and classifications
+/// Base interface for entity collections and classifications
 /**
  *  @note do not use directly, use the derived classes instead.
  */
@@ -128,6 +128,29 @@ private:
 	void remove(entity_key key);
 	update_key begin_update(entity_key key);
 	void finish_update(entity_key ekey, update_key);
+
+	template <typename Component, typename MemFnRV>
+	struct _call_comp_mem_fn
+	{
+		MemFnRV (Component::*_mem_fn_ptr)(void) const;
+
+		_call_comp_mem_fn(
+			MemFnRV (Component::*mem_fn_ptr)(void) const
+		): _mem_fn_ptr(mem_fn_ptr)
+		{ }
+
+		bool operator ()(
+			manager<Group>& mgr,
+			typename manager<Group>::entity_key ekey
+		)
+		{
+			assert(mgr.template has<Component>(ekey));
+			return bool(
+				(mgr.template rw<Component>(ekey)
+					.*_mem_fn_ptr)()
+			);
+		}
+	};
 public:
 	static void _instantiate(void);
 
@@ -142,6 +165,16 @@ public:
 		>& entity_filter
 	): _base(parent_manager)
 	 , _filter_entity(entity_filter)
+	{
+		this->_register();
+	}
+
+	template <typename Component, typename MemFnRV>
+	collection(
+		manager<Group>& parent_manager,
+		MemFnRV (Component::*mem_fn_ptr)(void) const
+	): _base(parent_manager)
+	 , _filter_entity(_call_comp_mem_fn<Component, MemFnRV>(mem_fn_ptr))
 	{
 		this->_register();
 	}
@@ -240,11 +273,11 @@ private:
 	}
 
 	template <typename Component, typename MemVarType>
-	struct _get_component_mem_var
+	struct _get_comp_mem_var
 	{
 		MemVarType Component::* _mem_var_ptr;
 
-		_get_component_mem_var(
+		_get_comp_mem_var(
 			MemVarType Component::* mem_var_ptr
 		): _mem_var_ptr(mem_var_ptr)
 		{ }
@@ -258,6 +291,29 @@ private:
 			return Class(
 				mgr.template rw<Component>(ekey)
 					.*_mem_var_ptr
+			);
+		}
+	};
+
+	template <typename Component, typename MemFnRV>
+	struct _call_comp_mem_fn
+	{
+		MemFnRV (Component::*_mem_fn_ptr)(void) const;
+
+		_call_comp_mem_fn(
+			MemFnRV (Component::*mem_fn_ptr)(void) const
+		): _mem_fn_ptr(mem_fn_ptr)
+		{ }
+
+		Class operator ()(
+			manager<Group>& mgr,
+			typename manager<Group>::entity_key ekey
+		)
+		{
+			assert(mgr.template has<Component>(ekey));
+			return Class(
+				(mgr.template rw<Component>(ekey)
+					.*_mem_fn_ptr)()
 			);
 		}
 	};
@@ -316,8 +372,46 @@ public:
 		MemVarType Component::* mem_var_ptr
 	): _base(parent_manager)
 	 , _filter_entity(&_has_component<Component>)
-	 , _classify(_get_component_mem_var<Component, MemVarType>(mem_var_ptr))
+	 , _classify(_get_comp_mem_var<Component, MemVarType>(mem_var_ptr))
 	 , _filter_class()
+	{
+		this->_register();
+	}
+
+	template <typename Component, typename MemVarType>
+	classification(
+		manager<Group>& parent_manager,
+		MemVarType Component::* mem_var_ptr,
+		const std::function<bool (Class)>& class_filter
+	): _base(parent_manager)
+	 , _filter_entity(&_has_component<Component>)
+	 , _classify(_get_comp_mem_var<Component, MemVarType>(mem_var_ptr))
+	 , _filter_class(class_filter)
+	{
+		this->_register();
+	}
+
+	template <typename Component, typename MemFnRV>
+	classification(
+		manager<Group>& parent_manager,
+		MemFnRV (Component::*mem_fn_ptr)(void) const
+	): _base(parent_manager)
+	 , _filter_entity(&_has_component<Component>)
+	 , _classify(_call_comp_mem_fn<Component, MemFnRV>(mem_fn_ptr))
+	 , _filter_class()
+	{
+		this->_register();
+	}
+
+	template <typename Component, typename MemFnRV>
+	classification(
+		manager<Group>& parent_manager,
+		MemFnRV (Component::*mem_fn_ptr)(void) const,
+		const std::function<bool (Class)>& class_filter
+	): _base(parent_manager)
+	 , _filter_entity(&_has_component<Component>)
+	 , _classify(_call_comp_mem_fn<Component, MemFnRV>(mem_fn_ptr))
+	 , _filter_class(class_filter)
 	{
 		this->_register();
 	}

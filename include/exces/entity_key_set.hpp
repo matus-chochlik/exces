@@ -48,9 +48,10 @@ public:
 		auto p = std::lower_bound(
 			_keys.begin(),
 			_keys.end(),
+			key,
 			_ek_less
 		);
-		return ((p != _keys.end()) && (key == p->first));
+		return ((p != _keys.end()) && (key == *p));
 	}
 
 	void insert(entity_key key)
