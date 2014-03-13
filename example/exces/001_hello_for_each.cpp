@@ -52,18 +52,10 @@ int main(void)
 	m.add(e[2], greeting("Hi"), location("there"));
 	m.add(e[3], greeting("Yo"), name("Frankie"));
 
-/*
 	std::function<void (const greeting&, const location&)> func =
 		[](const greeting& g, const location& l) -> void
 		{
 			std::cout << g.str << " " << l.str << "!" << std::endl;
-		};
-*/
-	std::function<void (const greeting*, const location*)> func =
-		[](const greeting* pg, const location* pl) -> void
-		{
-			if(pg && pl)
-				std::cout << pg->str << " " << pl->str << "!" << std::endl;
 		};
 
 	m.for_each(adapt_func(func));
