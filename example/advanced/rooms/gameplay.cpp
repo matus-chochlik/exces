@@ -48,9 +48,10 @@ void look_around(game_data& game, intity i)
 	std::vector<entity> ev;
 
 	auto push_back_entity =
-	[&ev](manager& m, manager::entity_key k)->void
+	[&ev](manager& m, manager::entity_key k)->bool
 	{
 		ev.push_back(m.get_entity(k));
+		return true;
 	};
 
 	game.portals_from.for_each(i_actor->current_location, push_back_entity);

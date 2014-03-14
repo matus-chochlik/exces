@@ -85,13 +85,14 @@ int main(void)
 	excess::collection adults(m, &person::is_adult);
 	excess::collection seniors(m, &person::is_senior);
 
-	std::function<void (const person&)> printer =
-		[](const person& p) -> void
+	std::function<bool (const person&)> printer =
+		[](const person& p) -> bool
 		{
 			std::cout
 				<< p.name << " "
 				<< p.surname << " ("
 				<< p.age << "); ";
+			return true;
 		};
 
 	std::cout << "Children: ";

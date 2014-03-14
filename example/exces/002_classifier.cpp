@@ -62,9 +62,10 @@ int main(void)
 		namesakes.for_each(
 			names[i],
 			exces::adapt_func_c<person>(
-				[](const person& p) -> void
+				[](const person& p) -> bool
 				{
 					std::cout << p.surname << " ";
+					return true;
 				}
 			)
 		);

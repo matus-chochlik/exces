@@ -52,10 +52,11 @@ int main(void)
 	m.add(e[2], greeting("Hi"), location("there"));
 	m.add(e[3], greeting("Yo"), name("Frankie"));
 
-	std::function<void (const greeting&, const location&)> func =
-		[](const greeting& g, const location& l) -> void
+	std::function<bool (const greeting&, const location&)> func =
+		[](const greeting& g, const location& l) -> bool
 		{
 			std::cout << g.str << " " << l.str << "!" << std::endl;
+			return true;
 		};
 
 	m.for_each(adapt_func(func));

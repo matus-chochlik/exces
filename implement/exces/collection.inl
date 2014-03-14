@@ -113,7 +113,7 @@ template <typename Group>
 void
 collection<Group>::
 for_each(
-	const std::function<void(
+	const std::function<bool(
 		manager<Group>&,
 		typename manager<Group>::entity_key
 	)>& function
@@ -126,7 +126,8 @@ for_each(
 	while(i != e)
 	{
 		auto k = *i;
-		function(this->_manager(), *i);
+		if(!function(this->_manager(), *i))
+			break;
 		++i;
 	}
 }
@@ -305,7 +306,7 @@ void
 classification<Class, Group>::
 for_each(
 	const Class& entity_class,
-	const std::function<void(
+	const std::function<bool(
 		manager<Group>&,
 		typename manager<Group>::entity_key
 	)>& function
@@ -322,7 +323,8 @@ for_each(
 		while(i != e)
 		{
 			auto k = *i;
-			function(this->_manager(), *i);
+			if(!function(this->_manager(), *i))
+				break;
 			++i;
 		}
 	}
@@ -344,7 +346,7 @@ _instantiate(void)
 		manager<Group>&,
 		typename manager<Group>::entity_key
 	)> cl;
-	std::function<void (
+	std::function<bool (
 		manager<Group>&,
 		typename manager<Group>::entity_key
 	)> fe;

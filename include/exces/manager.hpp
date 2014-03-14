@@ -1217,7 +1217,7 @@ public:
 
 	/// Calls the specified function on each entity
 	manager& for_each(
-		const std::function<void (
+		const std::function<bool (
 			manager&,
 			entity_key
 		)>& function

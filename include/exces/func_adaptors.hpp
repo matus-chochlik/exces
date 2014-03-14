@@ -52,15 +52,17 @@ struct func_adaptor_c
 	 *  instances passed as arguments to the adapted functor.
 	 */
 	template <typename Group>
-	void operator()(
+	bool operator()(
 		manager<Group>& m,
 		typename manager<Group>::entity_key k
 	)
 	{
 		if(m.template has_all<Components...>(k))
 		{
-			_functor(m.template raw_access<Components>(k)...);
+			if(!_functor(m.template raw_access<Components>(k)...))
+				return false;
 		}
+		return true;
 	}
 };
 
@@ -82,8 +84,8 @@ adapt_func_c(const Functor& functor)
  */
 template <typename ... Components>
 inline 
-func_adaptor_c<std::function<void(Components...)>, Components...>
-adapt_func(const std::function<void(Components...)>& functor)
+func_adaptor_c<std::function<bool(Components...)>, Components...>
+adapt_func(const std::function<bool(Components...)>& functor)
 {
 	return adapt_func_c<Components...>(functor);
 }
@@ -132,15 +134,17 @@ struct func_adaptor_cp
 	 *  doesn't have the i-th component then a null pointer is passed.
 	 */
 	template <typename Group>
-	void operator()(
+	bool operator()(
 		manager<Group>& m,
 		typename manager<Group>::entity_key k
 	)
 	{
 		if(m.template has_some<Components...>(k))
 		{
-			_functor(_get_ptr<Group, Components>(m, k)...);
+			if(!_functor(_get_ptr<Group, Components>(m, k)...))
+				return false;
 		}
+		return true;
 	}
 };
 
@@ -162,8 +166,8 @@ adapt_func_cp(const Functor& functor)
  */
 template <typename ... Components>
 inline 
-func_adaptor_cp<std::function<void(Components*...)>, Components...>
-adapt_func(const std::function<void(Components*...)>& functor)
+func_adaptor_cp<std::function<bool(Components*...)>, Components...>
+adapt_func(const std::function<bool(Components*...)>& functor)
 {
 	return adapt_func_cp<Components...>(functor);
 }
@@ -201,18 +205,19 @@ struct func_adaptor_cmv
 	 *  the reference of the member variable.
 	 */
 	template <typename Group>
-	void operator()(
+	bool operator()(
 		manager<Group>& m,
 		typename manager<Group>::entity_key k
 	)
 	{
 		if(m.template has<Component>(k))
 		{
-			_functor(
+			if(!_functor(
 				m.template raw_access<Component>(k)
 					.*_mem_var_ptr
-			);
+			)) return false;
 		}
+		return true;
 	}
 };
 
@@ -255,7 +260,7 @@ struct func_adaptor_mkc
 
 	/// The function call operator
 	template <typename Group>
-	void operator()(
+	bool operator()(
 		manager<Group>& m,
 		typename manager<Group>::entity_key k
 	)
@@ -289,14 +294,14 @@ adapt_func_mkc(const Functor& functor)
 template <typename Group, typename ... Components>
 inline 
 func_adaptor_mkc<
-	std::function<void(
+	std::function<bool(
 		manager<Group>&,
 		typename manager<Group>::entity_key,
 		Components...
 	)>,
 	Components...
 > adapt_func(
-	const std::function<void(
+	const std::function<bool(
 		manager<Group>&,
 		typename manager<Group>::entity_key,
 		Components...
@@ -345,15 +350,19 @@ struct func_adaptor_mkcp
 
 	/// The function call operator
 	template <typename Group>
-	void operator()(
+	bool operator()(
 		manager<Group>& m,
 		typename manager<Group>::entity_key k
 	)
 	{
 		if(m.template has_some<Components...>(k))
 		{
-			_functor(m, k, _get_ptr<Group, Components>(m, k)...);
+			if(!_functor(
+				m, k,
+				_get_ptr<Group, Components>(m, k)...
+			)) return false;
 		}
+		return true;
 	}
 };
 
@@ -376,14 +385,14 @@ adapt_func_mkcp(const Functor& functor)
 template <typename Group, typename ... Components>
 inline 
 func_adaptor_mkcp<
-	std::function<void(
+	std::function<bool(
 		manager<Group>&,
 		typename manager<Group>::entity_key,
 		Components*...
 	)>,
 	Components...
 > adapt_func(
-	const std::function<void(
+	const std::function<bool(
 		manager<Group>&,
 		typename manager<Group>::entity_key,
 		Components*...
@@ -418,18 +427,19 @@ struct func_adaptor_mkec
 
 	/// The function call operator
 	template <typename Group>
-	void operator()(
+	bool operator()(
 		manager<Group>& m,
 		typename manager<Group>::entity_key k
 	)
 	{
 		if(m.template has_all<Components...>(k))
 		{
-			_functor(
+			if(!_functor(
 				m, k, m.get_entity(k),
 				m.template raw_access<Components>(k)...
-			);
+			)) return false;
 		}
+		return true;
 	}
 };
 
@@ -452,7 +462,7 @@ adapt_func_mkec(const Functor& functor)
 template <typename Group, typename ... Components>
 inline 
 func_adaptor_mkec<
-	std::function<void(
+	std::function<bool(
 		manager<Group>&,
 		typename manager<Group>::entity_key,
 		typename entity<Group>::type,
@@ -460,7 +470,7 @@ func_adaptor_mkec<
 	)>,
 	Components...
 > adapt_func(
-	const std::function<void(
+	const std::function<bool(
 		manager<Group>&,
 		typename manager<Group>::entity_key,
 		typename entity<Group>::type,

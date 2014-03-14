@@ -74,9 +74,10 @@ int main(void)
 		named.for_each(
 			names[i],
 			exces::adapt_func_c<surname>(
-				[](const surname& the_surname) -> void
+				[](const surname& the_surname) -> bool
 				{
 					std::cout << the_surname << " ";
+					return true;
 				}
 			)
 		);

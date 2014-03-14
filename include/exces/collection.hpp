@@ -192,7 +192,7 @@ public:
 
 	/// Execute a @p function on each entity in the collection.
 	void for_each(
-		const std::function<void(
+		const std::function<bool(
 			manager<Group>&,
 			typename manager<Group>::entity_key
 		)>& function
@@ -439,7 +439,7 @@ public:
 	/// Execute a @p function on each entity in the specified entity_class.
 	void for_each(
 		const Class& entity_class,
-		const std::function<void(
+		const std::function<bool(
 			manager<Group>&,
 			typename manager<Group>::entity_key
 		)>& function

@@ -385,7 +385,7 @@ template <typename Group>
 manager<Group>&
 manager<Group>::
 for_each(
-	const std::function<void (
+	const std::function<bool (
 		manager<Group>& m,
 		typename manager<Group>::entity_key k
 	)>& function
@@ -399,7 +399,8 @@ for_each(
 
 	while(i != e)
 	{
-		function(*this, i);
+		if(!function(*this, i))
+			break;
 		++i;
 	}
 

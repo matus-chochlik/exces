@@ -227,12 +227,13 @@ public:
 	{
 		entity_type e;
 
-		void operator()(named& n, contained& c) const
+		bool operator()(named& n, contained& c) const
 		{
 			if(c.container == e)
 			{
 				std::cout << n.name << " ";
 			}
+			return true;
 		}
 	};
 
@@ -240,7 +241,7 @@ public:
 	{
 		physical_system& ps;
 
-		void operator()(manager& m, entity_key k, entity_type e, const named& n) const
+		bool operator()(manager& m, entity_key k, entity_type e, const named& n) const
 		{
 			std::cout << n.name << ":";
 			if(m.has<container>(k))
@@ -257,6 +258,7 @@ public:
 				std::cout << " size: " << ps.get_size(k);
 			}
 			std::cout << std::endl;
+			return true;
 		}
 	};
 
