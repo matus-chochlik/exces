@@ -259,45 +259,6 @@ public:
 	}
 };
 
-class any_lock
- : public poly_lock
-{
-private:
-	template <typename Lockable>
-	struct _impl : lock_intf
-	{
-		Lockable _lockable;
-
-		_impl(Lockable&& lockable)
-		 : _lockable(std::move(lockable))
-		{ }
-
-		void lock(void){ _lockable.lock(); }
-		bool try_lock(void){ return _lockable.try_lock(); }
-		void unlock(void){ _lockable.unlock(); }
-	};
-public:
-	template <typename Lockable>
-	any_lock(Lockable&& lockable)
-	 : poly_lock(new _impl<Lockable>(std::move(lockable)))
-	{
-		assert(_pimpl);
-	}
-
-	any_lock(const any_lock&) = delete;
-
-	any_lock(any_lock&& tmp)
-	 : poly_lock(tmp._pimpl)
-	{
-		tmp._pimpl = nullptr;
-	}
-
-	~any_lock(void)
-	{
-		if(_pimpl) delete _pimpl;
-	}
-};
-
 } // namespace exces
 
 #endif //include guard
