@@ -346,6 +346,15 @@ private:
 		const std::function<void(_component_copier&)>&
 	);
 
+	// returns true if this manager has the specified entity
+	bool _has_entity(typename entity<Group>::type e)
+	{
+		typename _entity_info_map::iterator p = _entities.insert(
+			_entity_info_entry(e, _entity_info())
+		).first;
+		return (p != _entities.end());
+	}
+
 	// gets the information about an entity, inserts a new one
 	// if the entity is not registered yet
 	typename _entity_info_map::iterator
@@ -439,11 +448,18 @@ public:
 		return get_keys(es.begin(), es.end());
 	}
 
+	/// Returns true if this manager manages the specified entity
+	bool has_key(entity_type e)
+	{
+		return _has_entity(e);
+	}
+
 	/// Get a key for O(1) access to the specified entity
 	/**
 	 *  The returned keys are invalidated by removal of the entity
 	 *  from the manager.
 	 *
+	 *  @see has_key
 	 *  @see get_keys
 	 *  @see get_entity
 	 */

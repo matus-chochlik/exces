@@ -14,6 +14,7 @@
 #include <exces/fwd.hpp>
 
 #include <type_traits>
+#include <cstring>
 
 #define EXCES_GROUP_SEL_UNQ(GROUP) _group_##GROUP##_sel 
 #define EXCES_GROUP_SEL(GROUP) ::exces:: EXCES_GROUP_SEL_UNQ(GROUP)
@@ -63,6 +64,7 @@ template <> \
 struct component_name< COMPONENT, EXCES_GROUP_SEL(GROUP) > \
 { \
 	static const char* c_str(void) { return #COMPONENT ; } \
+	static std::size_t size(void) { return sizeof(#COMPONENT)-1 ; } \
 }; \
 EXCES_ADD_TO_GLOBAL_LIST(EXCES_GROUP_SEL(GROUP), COMPONENT) \
 
@@ -126,6 +128,43 @@ struct component_index
 {
 	// TODO: try some size optimizations here
 	typedef std::size_t type;
+
+	struct _by_name_hlp
+	{
+		type& result;
+		const char* name;
+		std::size_t size;
+
+		_by_name_hlp(type& res, const char* cname)
+		 : result(res)
+		 , name(cname)
+		 , size(std::strlen(name))
+		{ }
+
+		template <typename C>
+		void operator ()(mp::identity<C>) const
+		{
+			if(size == component_name<C>::size())
+			{
+				if(std::strncmp(
+					name,
+					component_name<C>::c_str(),
+					component_name<C>::size()
+				) == 0)
+				{
+					result = component_id<C, Group>();
+				}
+			}
+		}
+	};
+
+	static type by_name(const char* name)
+	{
+		type result = ~type(0);
+		_by_name_hlp hlp(result, name);
+		mp::for_each<typename components<Group>::type>(hlp);
+		return result;
+	}
 };
 
 } // namespace exces

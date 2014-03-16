@@ -11,33 +11,92 @@
 #define EXCES_ANY_ENTITY_KEY_1403152314_HPP
 
 #include <exces/manager.hpp>
+#include <type_traits>
+#include <cstring>
 
 namespace exces {
+namespace aux_ {
 
-/// Type erasure for manager<Group>::entity_key
-class any_entity_key
+template <bool Trivial>
+struct any_entity_key_cctr;
+	
+template <>
+struct any_entity_key_cctr<true>
 {
-private:
-	typedef std::aligned_storage<
-		sizeof(std::map<int, int>::iterator),
-		std::alignment_of<std::map<int, int>::iterator>::value
-	>::type _store_t;
-	_store_t _store;
+	template <typename EK>
+	any_entity_key_cctr(const EK&)
+	{ }
 
-	// TODO optimizations if EK has trivial copy and/or destructor
+	operator bool (void) const
+	{
+		return true;
+	}
+	
+	void operator()(void* dst, const void* src, std::size_t size)
+	{
+		std::memcpy(dst, src, size);
+	}
+};
 
-	void (*_copy)(void*, const void*);
+template <>
+struct any_entity_key_cctr<false>
+{
+	void (*_copy)(void*, const void*, std::size_t);
 
 	template <typename EK>
-	static void _do_copy(void* dst, const void* src)
+	static void _do_copy(void* dst, const void* src, std::size_t size)
 	{
-		static_assert(
-			sizeof(_store_t) >= sizeof(EK),
-			"Insufficient storage space for entity key"
-		);
+		assert(size >= sizeof(EK));
 		new(dst) EK(*((const EK*)src));
 	}
 
+	any_entity_key_cctr(void)
+	 : _copy(nullptr)
+	{ }
+
+	template <typename EK>
+	any_entity_key_cctr(const EK&)
+	 : _copy(&_do_copy<EK>)
+	{ }
+
+	any_entity_key_cctr(const any_entity_key_cctr& that)
+	 : _copy(that._copy)
+	{ }
+
+	operator bool (void) const
+	{
+		return _copy != nullptr;
+	}
+	
+	void operator()(void* dst, const void* src, std::size_t size)
+	{
+		assert(_copy);
+		_copy(dst, src, size);
+	}
+};
+
+template <bool Trivial>
+struct any_entity_key_dtr;
+
+template <>
+struct any_entity_key_dtr<true>
+{
+	template <typename EK>
+	any_entity_key_dtr(const EK&)
+	{ }
+
+	operator bool (void) const
+	{
+		return true;
+	}
+	
+	void operator()(void*)
+	{ }
+};
+
+template <>
+struct any_entity_key_dtr<false>
+{
 	void (*_destroy)(void*);
 
 	template <typename EK>
@@ -45,20 +104,67 @@ private:
 	{
 		((EK*)ptr)->~EK();
 	}
+
+	any_entity_key_dtr(void)
+	 : _destroy(nullptr)
+	{ }
+
+	template <typename EK>
+	any_entity_key_dtr(const EK&)
+	 : _destroy(&_do_destroy<EK>)
+	{ }
+
+	any_entity_key_dtr(const any_entity_key_dtr& that)
+	 : _destroy(that._destroy)
+	{ }
+
+	operator bool (void) const
+	{
+		return _destroy != nullptr;
+	}
+	
+	void operator()(void* ptr)
+	{
+		assert(_destroy);
+		_destroy(ptr);
+	}
+};
+
+} // namespace aux_
+
+/// Type erasure for manager<Group>::entity_key
+/** Exces users should treat any_entity_key as an opaque type supporting
+ *  only default and copy construction, destruction and usage with 
+ */
+class any_entity_key
+{
+private:
+	typedef std::map<int, int>::iterator _iter;
+
+	typedef std::aligned_storage<
+		sizeof(_iter),
+		std::alignment_of<_iter>::value
+	>::type _store_t;
+	_store_t _store;
+
+	// TODO detect if _iter's cctr/dtr is trivial
+	aux_::any_entity_key_cctr<false> _copy;
+	aux_::any_entity_key_dtr<false> _destroy;
+
 public:
 	typedef const any_entity_key& param_type;
 
 	any_entity_key(void)
-	 : _copy(nullptr)
-	 , _destroy(nullptr)
+	 : _copy()
+	 , _destroy()
 	{ }
 
 	template <typename EK>
 	any_entity_key(EK ek)
-	 : _copy(&_do_copy<EK>)
-	 , _destroy(&_do_destroy<EK>)
+	 : _copy(ek)
+	 , _destroy(ek)
 	{
-		_copy(&_store, &ek);
+		_copy(&_store, &ek, sizeof(_store));
 	}
 
 	any_entity_key(const any_entity_key& that)
@@ -67,7 +173,7 @@ public:
 	{
 		if(_copy)
 		{
-			_copy(&_store, &that._store);
+			_copy(&_store, &that._store, sizeof(_store));
 		}
 	}
 
