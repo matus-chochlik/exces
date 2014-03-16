@@ -819,27 +819,33 @@ public:
 		return ek->second._component_bits.test(cid);
 	}
 
+	bool has_all_bits(entity_key ek, const _component_bitset& bits)
+	{
+		_shared_lock sl(_mutex);
+		assert(ek != _entities.end());
+		return ((ek->second._component_bits & bits) == bits);
+	}
+
+	bool has_all_bits(entity_type e, const _component_bitset& bits)
+	{
+		_shared_lock sl(_mutex);
+		typename _entity_info_map::const_iterator ek = _entities.find(e);
+		if(ek == _entities.end()) return false;
+		return ((ek->second._component_bits & bits) == bits);
+	}
+
 	/// Returns true if the specified entity has all the specified Components
 	template <typename Sequence>
 	bool has_all_seq(entity_key ek, Sequence seq = Sequence())
 	{
-		_component_bitset _req_bits = _get_bits(seq);
-
-		_shared_lock sl(_mutex);
-		assert(ek != _entities.end());
-		return ((ek->second._component_bits & _req_bits) == _req_bits);
+		return has_all_bits(ek, _get_bits(seq));
 	}
 
 	/// Returns true if the specified entity has all the specified Components
 	template <typename Sequence>
 	bool has_all_seq(entity_type e, Sequence seq = Sequence())
 	{
-		_component_bitset _req_bits = _get_bits(seq);
-
-		_shared_lock sl(_mutex);
-		typename _entity_info_map::const_iterator ek = _entities.find(e);
-		if(ek == _entities.end()) return false;
-		return ((ek->second._component_bits & _req_bits) == _req_bits);
+		return has_all_bits(e, _get_bits(seq));
 	}
 
 	/// Returns true if the specified entity has all the specified Components
@@ -858,27 +864,33 @@ public:
 		return has_all_seq(e, seq);
 	}
 
+	bool has_some_bits(entity_key ek, const _component_bitset& bits)
+	{
+		_shared_lock sl(_mutex);
+		assert(ek != _entities.end());
+		return (ek->second._component_bits & bits).any();
+	}
+
+	bool has_some_bits(entity_type e, const _component_bitset& bits)
+	{
+		_shared_lock sl(_mutex);
+		typename _entity_info_map::const_iterator ek = _entities.find(e);
+		if(ek == _entities.end()) return false;
+		return (ek->second._component_bits & bits).any();
+	}
+
 	/// Returns true if the specified entity has some of the Components
 	template <typename Sequence>
 	bool has_some_seq(entity_key ek, Sequence seq = Sequence())
 	{
-		_component_bitset _req_bits = _get_bits(seq);
-
-		_shared_lock sl(_mutex);
-		assert(ek != _entities.end());
-		return (ek->second._component_bits & _req_bits).any();
+		return has_some_bits(ek, _get_bits(seq));
 	}
 
 	/// Returns true if the specified entity has some of the Components
 	template <typename Sequence>
 	bool has_some_seq(entity_type e, Sequence seq = Sequence())
 	{
-		_component_bitset _req_bits = _get_bits(seq);
-
-		_shared_lock sl(_mutex);
-		typename _entity_info_map::const_iterator ek = _entities.find(e);
-		if(ek == _entities.end()) return false;
-		return (ek->second._component_bits & _req_bits).any();
+		return has_some_bits(e, _get_bits(seq));
 	}
 
 	/// Returns true if the specified entity has some of the Components

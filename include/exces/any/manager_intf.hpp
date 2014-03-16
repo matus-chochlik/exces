@@ -17,17 +17,22 @@ namespace exces {
 template <typename Entity>
 struct any_manager_intf
 {
-	typedef typename any_entity_key::param_type any_entity_key_param;
+	typedef typename any_entity_key::param_type aekp;
 
 	virtual ~any_manager_intf(void) { }
 
 	virtual bool has_key(Entity e) = 0;
 	virtual any_entity_key get_key(Entity e) = 0;
-	virtual Entity get_entity(any_entity_key_param) = 0;
-	virtual bool has(any_entity_key_param, const char*) = 0;
-	virtual bool has(Entity, const char*) = 0;
+	virtual Entity get_entity(aekp) = 0;
 
-	virtual void* raw_access(any_entity_key_param, const char*) = 0;
+	virtual bool has(aekp, const char*) = 0;
+	virtual bool has(Entity, const char*) = 0;
+	virtual bool has_all(aekp, const char**) = 0;
+	virtual bool has_some(aekp, const char**) = 0;
+
+	virtual void reserve(std::size_t, const char**) = 0;
+
+	virtual void* raw_access(aekp, const char*) = 0;
 };
 
 template <typename Group>

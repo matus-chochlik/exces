@@ -22,6 +22,15 @@ using std::make_tuple;
 using std::tie;
 using std::integral_constant;
 
+// type traits
+using std::is_trivially_destructible;
+
+// TODO
+template <typename T>
+struct is_trivially_copyable
+ : std::false_type
+{ };
+
 // nil type
 struct nil
 {
@@ -231,6 +240,13 @@ inline void for_each(Func func)
 	_for_each_typ(func, pseq);
 }
 
+template <typename Sequence, typename Func>
+inline void for_each_ref(Func& func)
+{
+	Sequence* pseq = nullptr;
+	_for_each_typ(func, pseq);
+};
+
 template <typename Tuple, typename Func>
 inline void _for_each_val(Tuple& tup, Func& func, size_t_<0>)
 {
@@ -257,6 +273,16 @@ inline void _call_for_each_val(Tuple& tup, Func& func, size_t_<N>)
 
 template <typename Tuple, typename Func>
 inline void for_each(Tuple& tup, Func func)
+{
+	_call_for_each_val(
+		tup,
+		func,
+		size<typename std::remove_const<Tuple>::type>()
+	);
+};
+
+template <typename Tuple, typename Func>
+inline void for_each_ref(Tuple& tup, Func& func)
 {
 	_call_for_each_val(
 		tup,

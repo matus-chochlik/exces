@@ -11,6 +11,7 @@
 #define EXCES_ANY_ENTITY_MANAGER_IMPL_1403152314_HPP
 
 #include <exces/any/manager_intf.hpp>
+#include <unordered_set>
 
 namespace exces {
 
@@ -19,7 +20,7 @@ class any_manager_impl
  : public any_manager_intf<typename entity<Group>::type>
 {
 private:
-	typedef typename any_entity_key::param_type any_entity_key_param;
+	typedef typename any_entity_key::param_type aekp;
 	typedef typename entity<Group>::type _entity_t;
 
 	typedef manager<Group> _mgr_t;
@@ -27,11 +28,30 @@ private:
 
 	_mgr_t& _rmgr;
 
-	const _ek_t& _get(any_entity_key_param aek)
+	const _ek_t& _get(aekp aek)
 	{
 		return aek.get<_ek_t>();
 	}
 
+	static std::unordered_set<std::size_t>
+	cids_by_names(const char** cnames)
+	{
+		assert(cnames);
+		std::unordered_set<std::size_t> result;
+		while(*cnames)
+		{
+			result.insert(component_index<Group>::by_name(*cnames));
+			++cnames;
+		}
+		return std::move(result);
+	}
+
+	template <typename Func>
+	static Func& for_each_comp(Func& functor)
+	{
+		mp::for_each_ref<typename components<Group>::type>(functor);
+		return functor;
+	}
 public:
 	any_manager_impl(_mgr_t& mgr)
 	 : _rmgr(mgr)
@@ -47,10 +67,36 @@ public:
 		return any_entity_key(_rmgr.get_key(e));
 	}
 
-	_entity_t get_entity(any_entity_key_param aek)
+	_entity_t get_entity(aekp aek)
 	{
 		return _rmgr.get_entity(_get(aek));
 	}
+
+	template <typename Derived>
+	struct _iter_hlp
+	{
+		_mgr_t& _rmgr;
+		std::unordered_set<std::size_t> _cids;
+
+		Derived& derived(void)
+		{
+			return *(static_cast<Derived*>(this));
+		}
+
+		_iter_hlp(_mgr_t& mgr, const char** cnames)
+		 : _rmgr(mgr)
+		 , _cids(cids_by_names(cnames))
+		{ }
+
+		template <typename C>
+		void operator ()(mp::identity<C> ic)
+		{
+			if(_cids.count(component_id<C, Group>()))
+			{
+				derived().operate(ic);
+			}
+		}
+	};
 
 	template <typename E>
 	struct _has_hlp
@@ -58,7 +104,7 @@ public:
 		_mgr_t& _rmgr;
 		E _e;
 		std::size_t _cid;
-		bool& _res;
+		bool _res;
 
 		template <typename C>
 		void operator ()(mp::identity<C>)
@@ -70,22 +116,69 @@ public:
 		}
 	};
 
-	bool has(any_entity_key_param aek, const char* cname)
+	bool has(aekp aek, const char* cname)
 	{
 		std::size_t cid = component_index<Group>::by_name(cname);
-		bool result = false;
-		_has_hlp<_ek_t> hlp = { _rmgr, _get(aek), cid, result };
-		mp::for_each<typename components<Group>::type>(hlp);
-		return result;
+		_has_hlp<_ek_t> hlp = { _rmgr, _get(aek), cid, false };
+		return for_each_comp(hlp)._res;
 	}
 
 	bool has(_entity_t e, const char* cname)
 	{
 		std::size_t cid = component_index<Group>::by_name(cname);
-		bool result = false;
-		_has_hlp<_entity_t> hlp = { _rmgr, e, cid, result };
-		mp::for_each<typename components<Group>::type>(hlp);
-		return result;
+		_has_hlp<_entity_t> hlp = { _rmgr, e, cid, false };
+		return for_each_comp(hlp)._res;
+	}
+
+	struct _has_as_hlp : _iter_hlp<_has_as_hlp>
+	{
+		aux_::component_bitset<Group> _bits;
+
+		_has_as_hlp(_mgr_t& mgr, const char** cnames)
+		 : _iter_hlp<_has_as_hlp>(mgr, cnames)
+		{ }
+
+		template <typename C>
+		void operate(mp::identity<C>)
+		{
+			_bits.set(component_id<C, Group>());
+		}
+	};
+
+	bool has_all(aekp aek, const char** cnames)
+	{
+		_has_as_hlp hlp(_rmgr, cnames);
+		for_each_comp(hlp);
+		return _rmgr.has_all_bits(_get(aek), hlp._bits);
+	}
+
+	bool has_some(aekp aek, const char** cnames)
+	{
+		_has_as_hlp hlp(_rmgr, cnames);
+		for_each_comp(hlp);
+		return _rmgr.has_some_bits(_get(aek), hlp._bits);
+	}
+
+	struct _rsrv_hlp : _iter_hlp<_rsrv_hlp>
+	{
+		std::size_t _n;
+
+		_rsrv_hlp(_mgr_t& mgr, const char** cnames, std::size_t n)
+		 : _iter_hlp<_rsrv_hlp>(mgr, cnames)
+		 , _n(n)
+		{ }
+
+		template <typename C>
+		void operate(mp::identity<C>)
+		{
+			this->_rmgr.template reserve<C>(_n);
+		}
+	};
+
+	void reserve(std::size_t n, const char** cnames)
+	{
+		_rsrv_hlp hlp(_rmgr, cnames, n);
+		for_each_comp(hlp);
 	}
 
 	struct _ra_hlp
@@ -93,7 +186,7 @@ public:
 		_mgr_t& _rmgr;
 		_ek_t _ek;
 		std::size_t _cid;
-		void*& _res;
+		void* _res;
 
 		template <typename C>
 		void operator ()(mp::identity<C>)
@@ -106,13 +199,11 @@ public:
 		}
 	};
 
-	void* raw_access(any_entity_key_param aek, const char* cname)
+	void* raw_access(aekp aek, const char* cname)
 	{
-		void* result = nullptr;
 		std::size_t cid = component_index<Group>::by_name(cname);
-		_ra_hlp hlp = { _rmgr, _get(aek), cid, result };
-		mp::for_each<typename components<Group>::type>(hlp);
-		return result;
+		_ra_hlp hlp = { _rmgr, _get(aek), cid, nullptr };
+		return for_each_comp(hlp)._res;
 	}
 };
 

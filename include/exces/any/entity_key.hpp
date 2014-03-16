@@ -11,7 +11,7 @@
 #define EXCES_ANY_ENTITY_KEY_1403152314_HPP
 
 #include <exces/manager.hpp>
-#include <type_traits>
+#include <exces/aux_/metaprog.hpp>
 #include <cstring>
 
 namespace exces {
@@ -23,6 +23,8 @@ struct any_entity_key_cctr;
 template <>
 struct any_entity_key_cctr<true>
 {
+	any_entity_key_cctr(void) = default;
+
 	template <typename EK>
 	any_entity_key_cctr(const EK&)
 	{ }
@@ -81,6 +83,8 @@ struct any_entity_key_dtr;
 template <>
 struct any_entity_key_dtr<true>
 {
+	any_entity_key_dtr(void) = default;
+
 	template <typename EK>
 	any_entity_key_dtr(const EK&)
 	{ }
@@ -139,17 +143,21 @@ struct any_entity_key_dtr<false>
 class any_entity_key
 {
 private:
-	typedef std::map<int, int>::iterator _iter;
+	typedef std::map<int, int>::iterator _ek;
 
 	typedef std::aligned_storage<
-		sizeof(_iter),
-		std::alignment_of<_iter>::value
+		sizeof(_ek),
+		std::alignment_of<_ek>::value
 	>::type _store_t;
 	_store_t _store;
 
-	// TODO detect if _iter's cctr/dtr is trivial
-	aux_::any_entity_key_cctr<false> _copy;
-	aux_::any_entity_key_dtr<false> _destroy;
+	aux_::any_entity_key_cctr<
+		mp::is_trivially_copyable<_ek>::value
+	> _copy;
+
+	aux_::any_entity_key_dtr<
+		mp::is_trivially_destructible<_ek>::value
+	> _destroy;
 
 public:
 	typedef const any_entity_key& param_type;
