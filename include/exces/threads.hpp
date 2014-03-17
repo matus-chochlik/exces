@@ -240,6 +240,13 @@ public:
 		assert(_pimpl);
 	}
 
+	void swap(poly_lock& that)
+	{
+		lock_intf* tmp = that._pimpl;
+		that._pimpl = _pimpl;
+		_pimpl = tmp;
+	}
+
 	void lock(void)
 	{
 		assert(_pimpl);

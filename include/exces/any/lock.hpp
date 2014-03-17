@@ -33,6 +33,8 @@ private:
 		void unlock(void){ _lockable.unlock(); }
 	};
 public:
+	any_lock(void) = default;
+
 	template <typename Lockable>
 	any_lock(Lockable&& lockable)
 	 : poly_lock(new _impl<Lockable>(std::move(lockable)))
@@ -51,6 +53,12 @@ public:
 	~any_lock(void)
 	{
 		if(_pimpl) delete _pimpl;
+	}
+
+	any_lock& operator = (any_lock&& tmp)
+	{
+		swap(tmp);
+		return *this;
 	}
 };
 

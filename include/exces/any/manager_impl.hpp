@@ -11,7 +11,7 @@
 #define EXCES_ANY_ENTITY_MANAGER_IMPL_1403152314_HPP
 
 #include <exces/any/manager_intf.hpp>
-#include <unordered_set>
+#include <unordered_map>
 
 namespace exces {
 
@@ -33,14 +33,20 @@ private:
 		return aek.get<_ek_t>();
 	}
 
-	static std::unordered_set<std::size_t>
-	cids_by_names(const char** cnames)
+	static std::unordered_map<std::size_t, void*>
+	cids_by_names(const char** cnames, void** ptrs)
 	{
 		assert(cnames);
-		std::unordered_set<std::size_t> result;
+		std::unordered_map<std::size_t, void*> result;
 		while(*cnames)
 		{
-			result.insert(component_index<Group>::by_name(*cnames));
+			void* ptr = nullptr;
+			if(ptrs)
+			{
+				ptr = *ptrs;
+				++ptrs;
+			}
+			result[component_index<Group>::by_name(*cnames)] = ptr;
 			++cnames;
 		}
 		return std::move(result);
@@ -73,73 +79,104 @@ public:
 	}
 
 	template <typename Derived>
-	struct _iter_hlp
+	struct _onec_hlp
 	{
 		_mgr_t& _rmgr;
-		std::unordered_set<std::size_t> _cids;
+		std::size_t _cid;
 
 		Derived& derived(void)
 		{
 			return *(static_cast<Derived*>(this));
 		}
 
-		_iter_hlp(_mgr_t& mgr, const char** cnames)
+		_onec_hlp(_mgr_t& mgr, const char* cname)
 		 : _rmgr(mgr)
-		 , _cids(cids_by_names(cnames))
+		 , _cid(component_index<Group>::by_name(cname))
 		{ }
 
 		template <typename C>
 		void operator ()(mp::identity<C> ic)
 		{
-			if(_cids.count(component_id<C, Group>()))
+			if(_cid == component_id<C, Group>())
 			{
 				derived().operate(ic);
 			}
 		}
 	};
 
-	template <typename E>
-	struct _has_hlp
+	template <typename Derived>
+	struct _allc_hlp
 	{
 		_mgr_t& _rmgr;
-		E _e;
-		std::size_t _cid;
-		bool _res;
+		std::unordered_map<std::size_t, void*> _cids;
+
+		Derived& derived(void)
+		{
+			return *(static_cast<Derived*>(this));
+		}
+
+		_allc_hlp(_mgr_t& mgr, const char** cnames)
+		 : _rmgr(mgr)
+		 , _cids(cids_by_names(cnames, nullptr))
+		{ }
+
+		_allc_hlp(_mgr_t& mgr, const char** cnames, void** ptrs)
+		 : _rmgr(mgr)
+		 , _cids(cids_by_names(cnames, ptrs))
+		{ }
 
 		template <typename C>
-		void operator ()(mp::identity<C>)
+		void operator ()(mp::identity<C> ic)
 		{
-			if(_cid == component_id<C, Group>())
+			auto p = _cids.find(component_id<C, Group>());
+			if(p != _cids.end())
 			{
-				_res = _rmgr.template has<C>(_e);
+				derived().operate(ic, p->second);
 			}
+		}
+	};
+
+	template <typename E>
+	struct _has_hlp : _onec_hlp<_has_hlp<E>>
+	{
+		E _e;
+		bool _res;
+
+		_has_hlp(_mgr_t& mgr, const char* cname, E e)
+		 : _onec_hlp<_has_hlp<E>>(mgr, cname)
+		 , _e(e)
+		 , _res(false)
+		{ }
+
+		template <typename C>
+		void operate(mp::identity<C>)
+		{
+			_res = this->_rmgr.template has<C>(_e);
 		}
 	};
 
 	bool has(aekp aek, const char* cname)
 	{
-		std::size_t cid = component_index<Group>::by_name(cname);
-		_has_hlp<_ek_t> hlp = { _rmgr, _get(aek), cid, false };
+		_has_hlp<_ek_t> hlp(_rmgr, cname, _get(aek));
 		return for_each_comp(hlp)._res;
 	}
 
 	bool has(_entity_t e, const char* cname)
 	{
-		std::size_t cid = component_index<Group>::by_name(cname);
-		_has_hlp<_entity_t> hlp = { _rmgr, e, cid, false };
+		_has_hlp<_entity_t> hlp(_rmgr, cname, e);
 		return for_each_comp(hlp)._res;
 	}
 
-	struct _has_as_hlp : _iter_hlp<_has_as_hlp>
+	struct _has_as_hlp : _allc_hlp<_has_as_hlp>
 	{
 		aux_::component_bitset<Group> _bits;
 
 		_has_as_hlp(_mgr_t& mgr, const char** cnames)
-		 : _iter_hlp<_has_as_hlp>(mgr, cnames)
+		 : _allc_hlp<_has_as_hlp>(mgr, cnames)
 		{ }
 
 		template <typename C>
-		void operate(mp::identity<C>)
+		void operate(mp::identity<C>, void*)
 		{
 			_bits.set(component_id<C, Group>());
 		}
@@ -159,17 +196,17 @@ public:
 		return _rmgr.has_some_bits(_get(aek), hlp._bits);
 	}
 
-	struct _rsrv_hlp : _iter_hlp<_rsrv_hlp>
+	struct _rsrv_hlp : _allc_hlp<_rsrv_hlp>
 	{
 		std::size_t _n;
 
 		_rsrv_hlp(_mgr_t& mgr, const char** cnames, std::size_t n)
-		 : _iter_hlp<_rsrv_hlp>(mgr, cnames)
+		 : _allc_hlp<_rsrv_hlp>(mgr, cnames)
 		 , _n(n)
 		{ }
 
 		template <typename C>
-		void operate(mp::identity<C>)
+		void operate(mp::identity<C>, void*)
 		{
 			this->_rmgr.template reserve<C>(_n);
 		}
@@ -181,28 +218,143 @@ public:
 		for_each_comp(hlp);
 	}
 
-	struct _ra_hlp
+	struct _add_hlp : _allc_hlp<_add_hlp>
 	{
-		_mgr_t& _rmgr;
 		_ek_t _ek;
-		std::size_t _cid;
-		void* _res;
+
+		_add_hlp(_mgr_t& mgr, const char** cnames, void** ptrs, _ek_t ek)
+		 : _allc_hlp<_add_hlp>(mgr, cnames, ptrs)
+		 , _ek(ek)
+		{ }
+
+		template <typename C>
+		void operate(mp::identity<C>, void* ptr)
+		{
+			C& ref = *(static_cast<C*>(ptr));
+			this->_rmgr.template add<C>(_ek, std::move(ref));
+		}
+	};
+
+	void add(aekp aek, const char** cnames, void** refs)
+	{
+		_add_hlp hlp(_rmgr, cnames, refs, _get(aek));
+		for_each_comp(hlp);
+	}
+
+	struct _rmv_hlp : _allc_hlp<_rmv_hlp>
+	{
+		_ek_t _ek;
+
+		_rmv_hlp(_mgr_t& mgr, const char** cnames, _ek_t ek)
+		 : _allc_hlp<_rmv_hlp>(mgr, cnames)
+		 , _ek(ek)
+		{ }
+
+		template <typename C>
+		void operate(mp::identity<C>, void*)
+		{
+			this->_rmgr.template remove<C>(_ek);
+		}
+	};
+
+	void remove(aekp aek, const char** cnames)
+	{
+		_rmv_hlp hlp(_rmgr, cnames, _get(aek));
+		for_each_comp(hlp);
+	}
+
+	struct _cpy_hlp : _allc_hlp<_cpy_hlp>
+	{
+		_ek_t _ekf;
+		_ek_t _ekt;
+
+		_cpy_hlp(_mgr_t& mgr, const char** cnames, _ek_t ekf, _ek_t ekt)
+		 : _allc_hlp<_cpy_hlp>(mgr, cnames)
+		 , _ekf(ekf)
+		 , _ekt(ekt)
+		{ }
+
+		template <typename C>
+		void operate(mp::identity<C>, void*)
+		{
+			this->_rmgr.template copy<C>(_ekf, _ekt);
+		}
+	};
+
+	void copy(aekp aek_from, aekp aek_to, const char** cnames)
+	{
+		_cpy_hlp hlp(_rmgr, cnames, _get(aek_from), _get(aek_to));
+		for_each_comp(hlp);
+	}
+
+	struct _ltlk_hlp : _onec_hlp<_ltlk_hlp>
+	{
+		any_lock _res;
+
+		_ltlk_hlp(_mgr_t& mgr, const char* cname)
+		 : _onec_hlp<_ltlk_hlp>(mgr, cname)
+		{ }
 
 		template <typename C>
 		void operator ()(mp::identity<C>)
 		{
-			if(_cid == component_id<C, Group>())
-			{
-				C& ref = _rmgr.template raw_access<C>(_ek);
-				_res = &ref;
-			}
+			_res = any_lock(
+				this->_rmgr.template lifetime_lock<C>()
+			);
+		}
+	};
+
+	any_lock lifetime_lock(const char* cname)
+	{
+		_ltlk_hlp hlp(_rmgr, cname);
+		return std::move(for_each_comp(hlp)._res);
+	}
+
+	struct _ralk_hlp : _onec_hlp<_ralk_hlp>
+	{
+		any_lock _res;
+
+		_ralk_hlp(_mgr_t& mgr, const char* cname)
+		 : _onec_hlp<_ralk_hlp>(mgr, cname)
+		{ }
+
+		template <typename C>
+		void operator ()(mp::identity<C>)
+		{
+			_res = any_lock(
+				this->_rmgr.template raw_access_lock<C>()
+			);
+		}
+	};
+
+	any_lock raw_access_lock(const char* cname)
+	{
+		_ralk_hlp hlp(_rmgr, cname);
+		return std::move(for_each_comp(hlp)._res);
+	}
+
+	struct _ra_hlp : _onec_hlp<_ra_hlp>
+	{
+		_ek_t _ek;
+		void* _res;
+
+		_ra_hlp(_mgr_t& mgr, const char* cname, _ek_t ek)
+		 : _onec_hlp<_ra_hlp>(mgr, cname)
+		 , _ek(ek)
+		 , _res(nullptr)
+		{ }
+
+		template <typename C>
+		void operator ()(mp::identity<C>)
+		{
+			C& ref = this->_rmgr.template raw_access<C>(_ek);
+			_res = &ref;
 		}
 	};
 
 	void* raw_access(aekp aek, const char* cname)
 	{
-		std::size_t cid = component_index<Group>::by_name(cname);
-		_ra_hlp hlp = { _rmgr, _get(aek), cid, nullptr };
+		_ra_hlp hlp(_rmgr, cname, _get(aek));
 		return for_each_comp(hlp)._res;
 	}
 };

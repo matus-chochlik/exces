@@ -11,6 +11,7 @@
 #define EXCES_ANY_ENTITY_MANAGER_INTF_1403152314_HPP
 
 #include <exces/any/entity_key.hpp>
+#include <exces/any/lock.hpp>
 
 namespace exces {
 
@@ -31,6 +32,12 @@ struct any_manager_intf
 	virtual bool has_some(aekp, const char**) = 0;
 
 	virtual void reserve(std::size_t, const char**) = 0;
+	virtual void add(aekp, const char**, void**) = 0;
+	virtual void remove(aekp, const char**) = 0;
+	virtual void copy(aekp, aekp, const char**) = 0;
+
+	virtual any_lock lifetime_lock(const char*) = 0;
+	virtual any_lock raw_access_lock(const char*) = 0;
 
 	virtual void* raw_access(aekp, const char*) = 0;
 };

@@ -33,6 +33,17 @@ private:
 		};
 		return result;
 	}
+
+	template <typename ... C>
+	std::array<void*, sizeof ... (C) + 1>
+	static cptrs(C& ... c)
+	{
+		std::array<void*, sizeof ... (C) + 1> result = {
+			static_cast<void*>(&c) ...,
+			nullptr
+		};
+		return result;
+	}
 public:
 	template <typename Group>
 	any_manager(manager<Group>& mgr)
@@ -93,6 +104,58 @@ public:
 		assert(_pimpl);
 		_pimpl->reserve(n, cnames<Components...>().data());
 		return *this;
+	}
+
+	template <typename ... Components>
+	any_manager& add(any_entity_key_param aek, Components&& ... comp)
+	{
+		assert(_pimpl);
+		_pimpl->add(
+			aek,
+			cnames<Components...>().data(),
+			cptrs<Components...>(comp...).data()
+		);
+		return *this;
+	}
+
+	template <typename ... Components>
+	any_manager& add(Entity e, Components&& ... comp)
+	{
+		return add(get_key(e), std::move(comp)...);
+	}
+
+	template <typename ... Components>
+	any_manager& remove(any_entity_key_param aek)
+	{
+		assert(_pimpl);
+		_pimpl->remove(aek, cnames<Components...>().data());
+		return *this;
+	}
+
+	template <typename ... Components>
+	any_manager& copy(any_entity_key_param aekf, any_entity_key_param aekt)
+	{
+		assert(_pimpl);
+		_pimpl->add(aekf, aekt, cnames<Components...>().data());
+		return *this;
+	}
+
+	template <typename Component>
+	any_lock lifetime_lock(void)
+	{
+		assert(_pimpl);
+		return _pimpl->lifetime_lock(
+			component_name<Component>::c_str()
+		);
+	}
+
+	template <typename Component>
+	any_lock raw_access_lock(void)
+	{
+		assert(_pimpl);
+		return _pimpl->raw_access_lock(
+			component_name<Component>::c_str()
+		);
 	}
 
 	template <typename Component>

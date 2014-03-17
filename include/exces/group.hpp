@@ -44,7 +44,7 @@ struct component_id<const Component, Group>
  : component_id<Component, Group>
 { };
 
-template <typename Component, typename Group = default_group>
+template <typename Component>
 struct component_name;
 
 template <typename Component, typename Group = default_group>
@@ -60,12 +60,6 @@ template <> \
 struct component_id< COMPONENT, EXCES_GROUP_SEL(GROUP) > \
  : EXCES_COUNTER_CURRENT(EXCES_GROUP_SEL(GROUP)) \
 { }; \
-template <> \
-struct component_name< COMPONENT, EXCES_GROUP_SEL(GROUP) > \
-{ \
-	static const char* c_str(void) { return #COMPONENT ; } \
-	static std::size_t size(void) { return sizeof(#COMPONENT)-1 ; } \
-}; \
 EXCES_ADD_TO_GLOBAL_LIST(EXCES_GROUP_SEL(GROUP), COMPONENT) \
 
 #define EXCES_REG_COMPONENT_IN_GROUP_END(COMPONENT, GROUP) \
@@ -95,6 +89,39 @@ EXCES_ADD_TO_GLOBAL_LIST(EXCES_GROUP_SEL(GROUP), COMPONENT) \
 	> : component_kind_flyweight \
 	{ }; \
 	EXCES_REG_COMPONENT_IN_GROUP_END(COMPONENT, GROUP)
+
+/// Registers the specified component's name
+/** The component names are required for the type-erased any_manager
+ *
+ *  @ see #EXCES_REG_COMPONENT_WITH_NAME
+ */
+#define EXCES_REG_COMPONENT_NAME(COMPONENT) \
+namespace exces { \
+template <> \
+struct component_name< COMPONENT > \
+{ \
+	static const char* c_str(void) { return #COMPONENT ; } \
+	static std::size_t size(void) { return sizeof(#COMPONENT)-1 ; } \
+};\
+} 
+
+/// Registers the specified component and also registers its name
+/**
+ *  @see #EXCES_REG_COMPONENT
+ *  @see #EXCES_REG_COMPONENT_NAME
+ */
+#define EXCES_REG_NAMED_COMPONENT(COMPONENT) \
+	EXCES_REG_COMPONENT_NAME(COMPONENT) \
+	EXCES_REG_COMPONENT(COMPONENT)
+
+/// Registers the specified flyweight component and also registers its name
+/**
+ *  @see #EXCES_REG_FLYWEIGHT_COMPONENT
+ *  @see #EXCES_REG_COMPONENT_NAME
+ */
+#define EXCES_REG_NAMED_FLYWEIGHT_COMPONENT(COMPONENT) \
+	EXCES_REG_COMPONENT_NAME(COMPONENT) \
+	EXCES_REG_FLYWEIGHT_COMPONENT(COMPONENT)
 
 /// Registers the specified component in the specifed group
 /**

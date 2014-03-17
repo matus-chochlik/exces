@@ -2,7 +2,7 @@
  *  @file exces/aux_/metaprog.hpp
  *  @brief Implementation of meta-programming utilities
  *
- *  Copyright 2012-2013 Matus Chochlik. Distributed under the Boost
+ *  Copyright 2012-2014 Matus Chochlik. Distributed under the Boost
  *  Software License, Version 1.0. (See accompanying file
  *  LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
  */
@@ -23,7 +23,12 @@ using std::tie;
 using std::integral_constant;
 
 // type traits
-using std::is_trivially_destructible;
+// TODO
+//using std::is_trivially_destructible;
+template <typename T>
+struct is_trivially_destructible
+ : std::false_type
+{ };
 
 // TODO
 template <typename T>
