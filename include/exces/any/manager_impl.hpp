@@ -296,7 +296,7 @@ public:
 		{ }
 
 		template <typename C>
-		void operator ()(mp::identity<C>)
+		void operate(mp::identity<C>)
 		{
 			_res = any_lock(
 				this->_rmgr.template lifetime_lock<C>()
@@ -319,7 +319,7 @@ public:
 		{ }
 
 		template <typename C>
-		void operator ()(mp::identity<C>)
+		void operate(mp::identity<C>)
 		{
 			_res = any_lock(
 				this->_rmgr.template raw_access_lock<C>()
@@ -345,7 +345,7 @@ public:
 		{ }
 
 		template <typename C>
-		void operator ()(mp::identity<C>)
+		void operate(mp::identity<C>)
 		{
 			C& ref = this->_rmgr.template raw_access<C>(_ek);
 			_res = &ref;

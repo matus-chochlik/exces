@@ -1251,6 +1251,14 @@ public:
 		)>& function
 	);
 
+	/// Calls the specified function on every instance of Component
+	template <typename Component>
+	manager& for_each(const std::function<bool (Component&)>& function)
+	{
+		_storage.for_each<Component>(function);
+		return *this;
+	}
+
 	/// The entity range type
 	typedef entity_range_tpl<
 		Group,

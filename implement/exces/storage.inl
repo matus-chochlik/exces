@@ -139,6 +139,17 @@ public:
 		return false;
 	}
 
+	void for_each(const std::function<bool (Component&)>& function)
+	{
+		for(auto& ent : _ents)
+		{
+			if(!function(ent._component))
+			{
+				break;
+			}
+		}
+	}
+
 	void gc(void)
 	{
 		for(auto key: _gc_keys)
@@ -259,6 +270,11 @@ public:
 			return true;
 		}
 		return false;
+	}
+
+	void for_each(const std::function<bool (Component&)>& function)
+	{
+		_ents.for_each(function);
 	}
 
 	void lock(void)

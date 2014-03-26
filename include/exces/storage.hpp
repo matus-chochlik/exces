@@ -16,6 +16,7 @@
 #include <exces/fwd.hpp>
 
 #include <cassert>
+#include <functional>
 
 namespace exces {
 
@@ -46,6 +47,8 @@ struct component_storage_vector : lock_intf
 
 	virtual void add_ref(component_key) = 0;
 	virtual bool release(component_key) = 0;
+
+	virtual void for_each(const std::function<bool (Component&)>&) = 0;
 };
 
 template <typename Group>
@@ -219,6 +222,13 @@ public:
 	{
 		return _store_of<Component>()
 			.release(key);
+	}
+
+	template <typename Component>
+	void for_each(const std::function<bool (Component&)>& function)
+	{
+		_store_of<Component>()
+			.for_each(function);
 	}
 
 	template <typename Component>
