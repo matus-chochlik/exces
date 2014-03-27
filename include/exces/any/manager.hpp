@@ -175,6 +175,29 @@ public:
 	{
 		return raw_access<Component>(aek);
 	}
+
+	any_manager& for_each(
+		const std::function<bool (
+			any_manager&,
+			const any_entity_key&
+		)>& func
+	)
+	{
+		assert(_pimpl);
+		_pimpl->for_each_mk(*this, func);
+		return *this;
+	}
+
+	template <typename Component>
+	any_manager& for_each(const std::function<bool (Component&)>& func)
+	{
+		assert(_pimpl);
+		_pimpl->for_each_c(
+			static_cast<const void*>(&func), 
+			component_name<Component>::c_str()
+		);
+		return *this;
+	}
 };
 
 

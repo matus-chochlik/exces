@@ -1252,6 +1252,10 @@ public:
 	);
 
 	/// Calls the specified function on every instance of Component
+	/** This function is more efficient in cases where all instances
+	 *  of a Component type must be processed and the reference to
+	 *  the entity to which the component belongs to is not needed.
+	 */
 	template <typename Component>
 	manager& for_each(const std::function<bool (Component&)>& function)
 	{

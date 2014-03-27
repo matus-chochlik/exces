@@ -12,8 +12,12 @@
 
 #include <exces/any/entity_key.hpp>
 #include <exces/any/lock.hpp>
+#include <functional>
 
 namespace exces {
+
+template <typename Entity>
+class any_manager;
 
 template <typename Entity>
 struct any_manager_intf
@@ -40,6 +44,15 @@ struct any_manager_intf
 	virtual any_lock raw_access_lock(const char*) = 0;
 
 	virtual void* raw_access(aekp, const char*) = 0;
+
+	virtual void for_each_mk(
+		any_manager<Entity>&,
+		const std::function<bool (
+			any_manager<Entity>&,
+			const any_entity_key&
+		)>&
+	) = 0;
+	virtual void for_each_c(const void*, const char*) = 0;
 };
 
 template <typename Group>

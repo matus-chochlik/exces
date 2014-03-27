@@ -357,6 +357,49 @@ public:
 		_ra_hlp hlp(_rmgr, cname, _get(aek));
 		return for_each_comp(hlp)._res;
 	}
+
+	void for_each_mk(
+		any_manager<typename entity<Group>::type>& amgr,
+		const std::function<bool (
+			any_manager<typename entity<Group>::type>&,
+			const any_entity_key&
+		)>& func
+	)
+	{
+		std::function<bool (_mgr_t&, _ek_t)> func_wrap =
+			[&amgr, &func](_mgr_t&, _ek_t ek) -> bool
+			{
+				return func(amgr, any_entity_key(ek));
+			};
+		this->_rmgr.for_each(func_wrap);
+	}
+
+	struct _fec_hlp : _onec_hlp<_fec_hlp>
+	{
+		const void* _pstd_fn;
+
+		_fec_hlp(_mgr_t& mgr, const char* cname, const void* pstd_fn)
+		 : _onec_hlp<_fec_hlp>(mgr, cname)
+		 , _pstd_fn(pstd_fn)
+		{
+			assert(_pstd_fn);
+		}
+
+		template <typename C>
+		void operate(mp::identity<C>)
+		{
+			assert(_pstd_fn);
+			typedef std::function<bool (C&)> Fn;
+			const Fn& func = *(static_cast<const Fn*>(_pstd_fn));
+			this->_rmgr.template for_each<C>(func);
+		}
+	};
+
+	void for_each_c(const void* pstd_fn, const char* cname)
+	{
+		_fec_hlp hlp(_rmgr, cname, pstd_fn);
+		for_each_comp(hlp);
+	}
 };
 
 template <typename Group>
