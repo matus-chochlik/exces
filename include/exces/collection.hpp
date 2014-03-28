@@ -65,7 +65,7 @@ public:
  *  @note do not use directly, use the derived classes instead.
  */
 template <typename Group>
-class any_collection
+class collection_intf
 {
 private:
 	friend class manager<Group>;
@@ -86,16 +86,16 @@ protected:
 
 	void _register(void);
 
-	any_collection(manager<Group>& parent_manager)
+	collection_intf(manager<Group>& parent_manager)
 	 : _pmanager(&parent_manager)
 	 , _cur_uk(0)
 	{ }
 public:
-	any_collection(const any_collection&) = delete;
+	collection_intf(const collection_intf&) = delete;
 
-	any_collection(any_collection&& tmp);
+	collection_intf(collection_intf&& tmp);
 
-	virtual ~any_collection(void);
+	virtual ~collection_intf(void);
 };
 
 /// Entity collection
@@ -107,10 +107,10 @@ public:
  */
 template <typename Group = default_group>
 class collection
- : public any_collection<Group>
+ : public collection_intf<Group>
 {
 private:
-	typedef any_collection<Group> _base;
+	typedef collection_intf<Group> _base;
 
 	std::function<
 		bool (
@@ -222,10 +222,10 @@ public:
  */
 template <typename Class, typename Group = default_group>
 class classification
- : public any_collection<Group>
+ : public collection_intf<Group>
 {
 private:
-	typedef any_collection<Group> _base;
+	typedef collection_intf<Group> _base;
 
 	std::function<
 		bool (

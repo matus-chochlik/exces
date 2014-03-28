@@ -372,14 +372,14 @@ private:
 	typename _entity_info_map::iterator
 	_find_entity(typename entity<Group>::type e);
 
-	std::vector<any_collection<Group>*> _collections;
-	friend class any_collection<Group>;
+	std::vector<collection_intf<Group>*> _collections;
+	friend class collection_intf<Group>;
 
-	void add_collection(any_collection<Group>* cl);
-	void remove_collection(any_collection<Group>* cl);
+	void add_collection(collection_intf<Group>* cl);
+	void remove_collection(collection_intf<Group>* cl);
 	void move_collection(
-		any_collection<Group>* old_cl,
-		any_collection<Group>* new_cl
+		collection_intf<Group>* old_cl,
+		collection_intf<Group>* new_cl
 	);
 
 	typedef std::vector<std::size_t> _collection_update_key_list;

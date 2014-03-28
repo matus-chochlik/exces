@@ -9,11 +9,11 @@
 
 namespace exces {
 //------------------------------------------------------------------------------
-// any_collection
+// collection_intf
 //------------------------------------------------------------------------------
 template <typename Group>
 void
-any_collection<Group>::
+collection_intf<Group>::
 _register(void)
 {
 	assert(_pmanager);
@@ -21,8 +21,8 @@ _register(void)
 }
 //------------------------------------------------------------------------------
 template <typename Group>
-any_collection<Group>::
-any_collection(any_collection&& tmp)
+collection_intf<Group>::
+collection_intf(collection_intf&& tmp)
  : _pmanager(tmp.pmanager)
  , _cur_uk(tmp._cur_uk)
 {
@@ -34,8 +34,8 @@ any_collection(any_collection&& tmp)
 }
 //------------------------------------------------------------------------------
 template <typename Group>
-any_collection<Group>::
-~any_collection(void)
+collection_intf<Group>::
+~collection_intf(void)
 {
 	if(_pmanager != nullptr)
 	{
@@ -45,8 +45,8 @@ any_collection<Group>::
 //------------------------------------------------------------------------------
 template <typename Group>
 inline
-typename any_collection<Group>::update_key
-any_collection<Group>::
+typename collection_intf<Group>::update_key
+collection_intf<Group>::
 _next_update_key(void)
 {
 	if(_cur_uk == 0) ++_cur_uk;
@@ -56,7 +56,7 @@ _next_update_key(void)
 template <typename Group>
 inline
 manager<Group>&
-any_collection<Group>::
+collection_intf<Group>::
 _manager(void) const
 {
 	assert(_pmanager);

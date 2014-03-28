@@ -34,7 +34,7 @@ _find_entity(typename entity<Group>::type e)
 template <typename Group>
 void
 manager<Group>::
-add_collection(any_collection<Group>* cl)
+add_collection(collection_intf<Group>* cl)
 {
 	_unique_lock ul(_mutex);
 
@@ -62,8 +62,8 @@ template <typename Group>
 void
 manager<Group>::
 move_collection(
-	any_collection<Group>* old_cl,
-	any_collection<Group>* new_cl
+	collection_intf<Group>* old_cl,
+	collection_intf<Group>* new_cl
 )
 {
 	_unique_lock ul(_mutex);
@@ -92,7 +92,7 @@ move_collection(
 template <typename Group>
 void
 manager<Group>::
-remove_collection(any_collection<Group>* cl)
+remove_collection(collection_intf<Group>* cl)
 {
 	_unique_lock ul(_mutex);
 
@@ -122,7 +122,7 @@ _begin_collection_update(
 
 	while(i != e)
 	{
-		any_collection<Group>* pc = *i;
+		collection_intf<Group>* pc = *i;
 		assert(pc != nullptr);
 		result[j] = pc->begin_update(key);
 		++i;
@@ -151,7 +151,7 @@ _finish_collection_update(
 
 	while(i != e)
 	{
-		any_collection<Group>* pc = *i;
+		collection_intf<Group>* pc = *i;
 		assert(pc != nullptr);
 		pc->finish_update(key, *u);
 		++i;
