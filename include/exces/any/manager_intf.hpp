@@ -45,10 +45,17 @@ struct any_manager_intf
 
 	virtual void* raw_access(aekp, const char*) = 0;
 
-	virtual void for_each_mk(
+	virtual void for_each_imk(
 		any_manager<Entity>&,
 		const std::function<bool (
 			const iter_info&,
+			any_manager<Entity>&,
+			const any_entity_key&
+		)>&
+	) = 0;
+	virtual void for_each_mk(
+		any_manager<Entity>&,
+		const std::function<bool (
 			any_manager<Entity>&,
 			const any_entity_key&
 		)>&

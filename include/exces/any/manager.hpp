@@ -185,6 +185,18 @@ public:
 	)
 	{
 		assert(_pimpl);
+		_pimpl->for_each_imk(*this, func);
+		return *this;
+	}
+
+	any_manager& for_each(
+		const std::function<bool (
+			any_manager&,
+			const any_entity_key&
+		)>& func
+	)
+	{
+		assert(_pimpl);
 		_pimpl->for_each_mk(*this, func);
 		return *this;
 	}

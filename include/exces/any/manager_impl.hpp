@@ -358,7 +358,7 @@ public:
 		return for_each_comp(hlp)._res;
 	}
 
-	void for_each_mk(
+	void for_each_imk(
 		any_manager<typename entity<Group>::type>& amgr,
 		const std::function<bool (
 			const iter_info&,
@@ -375,6 +375,26 @@ public:
 			) -> bool
 			{
 				return func(ii, amgr, any_entity_key(ek));
+			};
+		this->_rmgr.for_each(func_wrap);
+	}
+
+	void for_each_mk(
+		any_manager<typename entity<Group>::type>& amgr,
+		const std::function<bool (
+			any_manager<typename entity<Group>::type>&,
+			const any_entity_key&
+		)>& func
+	)
+	{
+		std::function<bool(const iter_info&, _mgr_t&, _ek_t)> func_wrap=
+			[&amgr, &func](
+				const iter_info&,
+				_mgr_t&,
+				_ek_t ek
+			) -> bool
+			{
+				return func(amgr, any_entity_key(ek));
 			};
 		this->_rmgr.for_each(func_wrap);
 	}
