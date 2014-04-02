@@ -48,7 +48,7 @@ void look_around(game_data& game, intity i)
 	std::vector<entity> ev;
 
 	auto push_back_entity =
-	[&ev](manager& m, manager::entity_key k)->bool
+	[&ev](const iter_info&, manager& m, manager::entity_key k)->bool
 	{
 		ev.push_back(m.get_entity(k));
 		return true;

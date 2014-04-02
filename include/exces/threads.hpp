@@ -70,6 +70,7 @@ struct fake_lock_guard
 
 struct fake_component_locking
 {
+	typedef fake_shared_mutex mutex;
 	typedef fake_shared_mutex shared_mutex;
 	typedef fake_unique_lock unique_lock;
 	typedef fake_shared_lock shared_lock;
@@ -98,6 +99,8 @@ struct fake_component_locking
 
 struct std_component_locking
 {
+	typedef std::mutex mutex;
+
 	// TODO std::shared_mutex where available
 	typedef exces::shared_mutex shared_mutex;
 

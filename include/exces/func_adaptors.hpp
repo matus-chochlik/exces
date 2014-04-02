@@ -11,6 +11,7 @@
 #define EXCES_FUNC_ADAPTORS_1212101457_HPP
 
 #include <exces/metaprog.hpp>
+#include <exces/iter_info.hpp>
 
 namespace exces {
 
@@ -53,6 +54,7 @@ struct func_adaptor_c
 	 */
 	template <typename Group>
 	bool operator()(
+		const iter_info&,
 		manager<Group>& m,
 		typename manager<Group>::entity_key k
 	)
@@ -88,6 +90,79 @@ func_adaptor_c<std::function<bool(Components...)>, Components...>
 adapt_func(const std::function<bool(Components...)>& functor)
 {
 	return adapt_func_c<Components...>(functor);
+}
+
+// IterInfo, Components ...
+
+/// Similar for func_adaptor_c but also accepts const reference to iter_info
+/** This adaptor is similar to func_adaptor_c, but the functions adapted by this
+ *  adaptor accept in addition to the specified Components also a const reference
+ *  to the iter_info structure providing info about the traversal
+ *
+ *  @ingroup func_adaptors
+ *
+ *  @see adapt_func_ic
+ */
+template <typename Functor, typename ... Components>
+struct func_adaptor_ic
+{
+	Functor _functor;
+
+	/// Adapts the specified functor
+	func_adaptor_ic(const Functor& functor)
+	 : _functor(functor)
+	{ }
+
+	/// The function call operator
+	template <typename Group>
+	bool operator()(
+		const iter_info& ii,
+		manager<Group>& m,
+		typename manager<Group>::entity_key k
+	)
+	{
+		if(m.template has_all<Components...>(k))
+		{
+			if(!_functor(
+				ii,
+				m.template raw_access<Components>(k)...
+			)) return false;
+		}
+		return true;
+	}
+};
+
+/// Constructs a new instance of func_adaptor_ic
+/**
+ *  @ingroup func_adaptors
+ */
+template <typename ... Components, typename Functor>
+inline
+func_adaptor_ic<Functor, Components...>
+adapt_func_ic(const Functor& functor)
+{
+	return func_adaptor_ic<Functor, Components...>(functor);
+}
+
+/// Constructs a new instance of func_adaptor_c adapting a std::function
+/**
+ *  @ingroup func_adaptors
+ */
+template <typename ... Components>
+inline 
+func_adaptor_ic<
+	std::function<bool (
+		const iter_info&,
+		Components...
+	)>,
+	Components...
+> adapt_func(
+	const std::function<
+		bool (const iter_info&, Components...)
+	>& functor
+)
+{
+	return adapt_func_ic<Components...>(functor);
 }
 
 // Pointers-to-components ...
@@ -135,6 +210,7 @@ struct func_adaptor_cp
 	 */
 	template <typename Group>
 	bool operator()(
+		const iter_info&,
 		manager<Group>& m,
 		typename manager<Group>::entity_key k
 	)
@@ -206,6 +282,7 @@ struct func_adaptor_cmv
 	 */
 	template <typename Group>
 	bool operator()(
+		const iter_info&,
 		manager<Group>& m,
 		typename manager<Group>::entity_key k
 	)
@@ -261,6 +338,7 @@ struct func_adaptor_mkc
 	/// The function call operator
 	template <typename Group>
 	bool operator()(
+		const iter_info&,
 		manager<Group>& m,
 		typename manager<Group>::entity_key k
 	)
@@ -311,6 +389,84 @@ func_adaptor_mkc<
 	return adapt_func_mkc<Components...>(functor);
 }
 
+// IterInfo, Manager, Key, Components ...
+
+/// Similar to func_adaptor_mkc but also accepting a const reference to iter_info
+/** This adaptor is similar to func_adaptor_mkc, but the functions adapted by this
+ *  adaptor accept in addition to the specified Components also a const reference
+ *  to the iter_info structure providing info about the traversal
+ *
+ *  @ingroup func_adaptors
+ *
+ *  @see adapt_func_imkc
+ *  @see func_adaptor_mkc
+ */
+template <typename Functor, typename ... Components>
+struct func_adaptor_imkc
+{
+	Functor _functor;
+
+	/// Adapts the specified functor
+	func_adaptor_imkc(const Functor& functor)
+	 : _functor(functor)
+	{ }
+
+	/// The function call operator
+	template <typename Group>
+	bool operator()(
+		const iter_info& ii,
+		manager<Group>& m,
+		typename manager<Group>::entity_key k
+	)
+	{
+		if(m.template has_all<Components...>(k))
+		{
+			_functor(
+				ii, m, k,
+				m.template raw_access<Components>(k)...
+			);
+		}
+	}
+};
+
+/// Constructs a new instance of func_adaptor_imkc
+/**
+ *  @ingroup func_adaptors
+ */
+template <typename ... Components, typename Functor>
+inline
+func_adaptor_imkc<Functor, Components...>
+adapt_func_imkc(const Functor& functor)
+{
+	return func_adaptor_imkc<Functor, Components...>(functor);
+}
+
+/// Constructs a new instance of func_adaptor_imkc adapting a std::function
+/**
+ *  @ingroup func_adaptors
+ */
+template <typename Group, typename ... Components>
+inline 
+func_adaptor_imkc<
+	std::function<bool(
+		const iter_info&,
+		manager<Group>&,
+		typename manager<Group>::entity_key,
+		Components...
+	)>,
+	Components...
+> adapt_func(
+	const std::function<bool(
+		const iter_info&,
+		manager<Group>&,
+		typename manager<Group>::entity_key,
+		Components...
+	)>& functor
+)
+{
+	return adapt_func_imkc<Components...>(functor);
+}
+
 // Manager, Key, Pointers-to-components ...
 
 /// Similar to func_adaptor_c but also accepting a reference to manager and a key
@@ -351,6 +507,7 @@ struct func_adaptor_mkcp
 	/// The function call operator
 	template <typename Group>
 	bool operator()(
+		const iter_info&,
 		manager<Group>& m,
 		typename manager<Group>::entity_key k
 	)
@@ -428,6 +585,7 @@ struct func_adaptor_mkec
 	/// The function call operator
 	template <typename Group>
 	bool operator()(
+		const iter_info&,
 		manager<Group>& m,
 		typename manager<Group>::entity_key k
 	)

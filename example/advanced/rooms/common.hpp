@@ -17,6 +17,7 @@ typedef exces::implicit_entity<> intity;
 typedef exces::manager<> manager;
 typedef exces::implicit_manager<> implicit_manager;
 using   exces::classification;
+using   exces::iter_info;
 
 struct game_data;
 

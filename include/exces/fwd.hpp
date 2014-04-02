@@ -28,6 +28,10 @@ struct component_kind_normal
 {
 	typedef component_kind_normal type;
 };
+struct component_kind_backbuf
+{
+	typedef component_kind_backbuf type;
+};
 struct component_kind_flyweight
 {
 	typedef component_kind_flyweight type;

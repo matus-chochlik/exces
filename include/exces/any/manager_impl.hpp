@@ -361,15 +361,20 @@ public:
 	void for_each_mk(
 		any_manager<typename entity<Group>::type>& amgr,
 		const std::function<bool (
+			const iter_info&,
 			any_manager<typename entity<Group>::type>&,
 			const any_entity_key&
 		)>& func
 	)
 	{
-		std::function<bool (_mgr_t&, _ek_t)> func_wrap =
-			[&amgr, &func](_mgr_t&, _ek_t ek) -> bool
+		std::function<bool(const iter_info&, _mgr_t&, _ek_t)> func_wrap=
+			[&amgr, &func](
+				const iter_info& ii,
+				_mgr_t&,
+				_ek_t ek
+			) -> bool
 			{
-				return func(amgr, any_entity_key(ek));
+				return func(ii, amgr, any_entity_key(ek));
 			};
 		this->_rmgr.for_each(func_wrap);
 	}

@@ -114,6 +114,7 @@ void
 collection<Group>::
 for_each(
 	const std::function<bool(
+		const iter_info&,
 		manager<Group>&,
 		typename manager<Group>::entity_key
 	)>& function
@@ -123,12 +124,15 @@ for_each(
 		i = _entities.begin(),
 		e = _entities.end();
 
+	iter_info ii(_entities.size());
+
 	while(i != e)
 	{
 		auto k = *i;
-		if(!function(this->_manager(), *i))
+		if(!function(ii, this->_manager(), k))
 			break;
 		++i;
+		ii.step();
 	}
 }
 //------------------------------------------------------------------------------
@@ -307,6 +311,7 @@ classification<Class, Group>::
 for_each(
 	const Class& entity_class,
 	const std::function<bool(
+		const iter_info&,
 		manager<Group>&,
 		typename manager<Group>::entity_key
 	)>& function
@@ -320,12 +325,15 @@ for_each(
 			i = p->second.begin(),
 			e = p->second.end();
 
+		iter_info ii(p->second.size());
+
 		while(i != e)
 		{
 			auto k = *i;
-			if(!function(this->_manager(), *i))
+			if(!function(ii, this->_manager(), k))
 				break;
 			++i;
+			ii.step();
 		}
 	}
 }
@@ -347,6 +355,7 @@ _instantiate(void)
 		typename manager<Group>::entity_key
 	)> cl;
 	std::function<bool (
+		const iter_info&,
 		manager<Group>&,
 		typename manager<Group>::entity_key
 	)> fe;

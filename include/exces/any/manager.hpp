@@ -178,6 +178,7 @@ public:
 
 	any_manager& for_each(
 		const std::function<bool (
+			const iter_info&,
 			any_manager&,
 			const any_entity_key&
 		)>& func

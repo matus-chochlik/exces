@@ -48,6 +48,7 @@ struct any_manager_intf
 	virtual void for_each_mk(
 		any_manager<Entity>&,
 		const std::function<bool (
+			const iter_info&,
 			any_manager<Entity>&,
 			const any_entity_key&
 		)>&
