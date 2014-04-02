@@ -75,6 +75,21 @@ EXCES_ADD_TO_GLOBAL_LIST(EXCES_GROUP_SEL(GROUP), COMPONENT) \
 	EXCES_REG_COMPONENT_IN_GROUP_BEGIN(COMPONENT, GROUP) \
 	EXCES_REG_COMPONENT_IN_GROUP_END(COMPONENT, GROUP)
 
+/// Registers a backbuffered component in the specified group
+/**
+ *  @see #EXCES_REG_GROUP
+ *  @see #EXCES_REG_COMPONENT_IN_GROUP
+ *  @see #EXCES_REG_COMPONENT
+ */
+#define EXCES_REG_BACKBUF_COMPONENT_IN_GROUP(COMPONENT, GROUP) \
+	EXCES_REG_COMPONENT_IN_GROUP_BEGIN(COMPONENT, GROUP) \
+	template <> struct component_kind<\
+		COMPONENT, \
+		EXCES_GROUP_SEL(GROUP) \
+	> : component_kind_backbuf \
+	{ }; \
+	EXCES_REG_COMPONENT_IN_GROUP_END(COMPONENT, GROUP)
+
 /// Registers a flyweight component in the specified group
 /**
  *  @see #EXCES_REG_GROUP
@@ -105,24 +120,6 @@ struct component_name< COMPONENT > \
 };\
 } 
 
-/// Registers the specified component and also registers its name
-/**
- *  @see #EXCES_REG_COMPONENT
- *  @see #EXCES_REG_COMPONENT_NAME
- */
-#define EXCES_REG_NAMED_COMPONENT(COMPONENT) \
-	EXCES_REG_COMPONENT_NAME(COMPONENT) \
-	EXCES_REG_COMPONENT(COMPONENT)
-
-/// Registers the specified flyweight component and also registers its name
-/**
- *  @see #EXCES_REG_FLYWEIGHT_COMPONENT
- *  @see #EXCES_REG_COMPONENT_NAME
- */
-#define EXCES_REG_NAMED_FLYWEIGHT_COMPONENT(COMPONENT) \
-	EXCES_REG_COMPONENT_NAME(COMPONENT) \
-	EXCES_REG_FLYWEIGHT_COMPONENT(COMPONENT)
-
 /// Registers the specified component in the specifed group
 /**
  *  @see #EXCES_REG_GROUP
@@ -132,7 +129,16 @@ struct component_name< COMPONENT > \
 #define EXCES_REG_COMPONENT(COMPONENT) \
 	EXCES_REG_COMPONENT_IN_GROUP(COMPONENT, default)
 
-/// Registers the specified component in the specifed group
+/// Registers the specified backbuffered component in the specifed group
+/**
+ *  @see #EXCES_REG_GROUP
+ *  @see #EXCES_REG_FLYWEIGHT_COMPONENT_IN_GROUP
+ *  @see #EXCES_REG_COMPONENT
+ */
+#define EXCES_REG_BACKBUF_COMPONENT(COMPONENT) \
+	EXCES_REG_BACKBUF_COMPONENT_IN_GROUP(COMPONENT, default)
+
+/// Registers the specified flyweight component in the specifed group
 /**
  *  @see #EXCES_REG_GROUP
  *  @see #EXCES_REG_FLYWEIGHT_COMPONENT_IN_GROUP
@@ -140,6 +146,33 @@ struct component_name< COMPONENT > \
  */
 #define EXCES_REG_FLYWEIGHT_COMPONENT(COMPONENT) \
 	EXCES_REG_FLYWEIGHT_COMPONENT_IN_GROUP(COMPONENT, default)
+
+/// Registers the specified component and also registers its name
+/**
+ *  @see #EXCES_REG_COMPONENT
+ *  @see #EXCES_REG_COMPONENT_NAME
+ */
+#define EXCES_REG_NAMED_COMPONENT(COMPONENT) \
+	EXCES_REG_COMPONENT_NAME(COMPONENT) \
+	EXCES_REG_COMPONENT(COMPONENT)
+
+/// Registers the specified backbuffered component and also registers its name
+/**
+ *  @see #EXCES_REG_BACKBUF_COMPONENT
+ *  @see #EXCES_REG_COMPONENT_NAME
+ */
+#define EXCES_REG_NAMED_BACKBUF_COMPONENT(COMPONENT) \
+	EXCES_REG_COMPONENT_NAME(COMPONENT) \
+	EXCES_REG_BACKBUF_COMPONENT(COMPONENT)
+
+/// Registers the specified flyweight component and also registers its name
+/**
+ *  @see #EXCES_REG_FLYWEIGHT_COMPONENT
+ *  @see #EXCES_REG_COMPONENT_NAME
+ */
+#define EXCES_REG_NAMED_FLYWEIGHT_COMPONENT(COMPONENT) \
+	EXCES_REG_COMPONENT_NAME(COMPONENT) \
+	EXCES_REG_FLYWEIGHT_COMPONENT(COMPONENT)
 
 namespace exces {
 

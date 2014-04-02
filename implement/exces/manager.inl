@@ -386,8 +386,9 @@ manager<Group>&
 manager<Group>::
 for_each(
 	const std::function<bool (
-		manager<Group>& m,
-		typename manager<Group>::entity_key k
+		const iter_info&,
+		manager<Group>&,
+		typename manager<Group>::entity_key
 	)>& function
 )
 {
@@ -397,11 +398,16 @@ for_each(
 		i = _entities.begin(),
 		e = _entities.end();
 
+	iter_info ii(_entities.size());
+
 	while(i != e)
 	{
-		if(!function(*this, i))
+		if(!function(ii, *this, i))
+		{
 			break;
+		}
 		++i;
+		ii.step();
 	}
 
 	return *this;

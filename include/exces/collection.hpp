@@ -15,6 +15,7 @@
 #include <exces/entity_key_set.hpp>
 #include <exces/entity_filters.hpp>
 #include <exces/func_adaptors.hpp>
+#include <exces/iter_info.hpp>
 
 #include <map>
 #include <functional>
@@ -193,6 +194,7 @@ public:
 	/// Execute a @p function on each entity in the collection.
 	void for_each(
 		const std::function<bool(
+			const iter_info&,
 			manager<Group>&,
 			typename manager<Group>::entity_key
 		)>& function
@@ -440,6 +442,7 @@ public:
 	void for_each(
 		const Class& entity_class,
 		const std::function<bool(
+			const iter_info&,
 			manager<Group>&,
 			typename manager<Group>::entity_key
 		)>& function

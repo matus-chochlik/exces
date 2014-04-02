@@ -19,14 +19,41 @@
 #include <functional>
 
 namespace exces {
+namespace aux_ {
+
+template <typename Group, typename Component, typename Kind>
+struct component_kind_storage_locking
+{
+	typedef component_locking<Group, Component> _locking;
+	typedef typename _locking::shared_lock shared_lock;
+	typedef typename _locking::unique_lock unique_lock;
+};
+
+template <typename Group, typename Component>
+struct component_kind_storage_locking<Group, Component, component_kind_backbuf>
+{
+	typedef poly_lock shared_lock;
+	typedef poly_lock unique_lock;
+};
+
+} // namespace aux_
+
+template <typename Group, typename Component>
+struct component_storage_locking
+ : aux_::component_kind_storage_locking<
+	Group,
+	Component,
+	typename component_kind<Component, Group>::type
+>
+{ };
 
 // Interface for component storage vectors of component_storage
 template <typename Group, typename Component>
 struct component_storage_vector : lock_intf
 {
-	typedef component_locking<Group, Component> locking;
-	typedef typename locking::shared_lock shared_lock;
-	typedef typename locking::unique_lock unique_lock;
+	typedef component_storage_locking<Group, Component> _locking;
+	typedef typename _locking::shared_lock shared_lock;
+	typedef typename _locking::unique_lock unique_lock;
 
 	typedef std::size_t component_key;
 
@@ -134,7 +161,7 @@ public:
 
 	/// Returns an unlocked shared lock for read-only operations on Component
 	template <typename Component>
-	typename component_locking<Group, Component>::shared_lock
+	typename component_storage_locking<Group, Component>::shared_lock
 	read_lock(component_key = null_key())
 	{
 		return _store_of<Component>()
@@ -143,7 +170,7 @@ public:
 
 	/// Same as read_lock(key)
 	template <typename Component>
-	typename component_locking<Group, Component>::shared_lock
+	typename component_storage_locking<Group, Component>::shared_lock
 	access_lock(component_access_read_only, component_key = null_key())
 	{
 		return _store_of<Component>()
@@ -152,7 +179,7 @@ public:
 
 	/// Returns an unlocked unique lock for read/write operations on Component
 	template <typename Component>
-	typename component_locking<Group, Component>::unique_lock
+	typename component_storage_locking<Group, Component>::unique_lock
 	write_lock(component_key = null_key())
 	{
 		return _store_of<Component>()
@@ -161,7 +188,7 @@ public:
 
 	/// Same as write lock
 	template <typename Component>
-	typename component_locking<Group, Component>::unique_lock
+	typename component_storage_locking<Group, Component>::unique_lock
 	access_lock(component_access_read_write, component_key = null_key())
 	{
 		return _store_of<Component>()
