@@ -14,5 +14,6 @@
 #include <exces/component.inl>
 #include <exces/manager.inl>
 #include <exces/collection.inl>
+#include <exces/any/manager_intf.inl>
 
 #endif // include guard

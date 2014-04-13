@@ -1,5 +1,5 @@
 /**
- *  @file exces/any/manager_intf.hpp
+ *  @file exces/any/manager.hpp
  *  @brief Type erasure for entity component manager
  *
  *  Copyright 2012-2014 Matus Chochlik. Distributed under the Boost

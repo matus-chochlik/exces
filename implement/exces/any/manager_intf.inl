@@ -1,5 +1,5 @@
 /**
- *  @file exces/any/manager_impl.hpp
+ *  @file exces/any/manager_intf.inl
  *  @brief Implementation of manager type erasure
  *
  *  Copyright 2012-2014 Matus Chochlik. Distributed under the Boost
@@ -7,14 +7,13 @@
  *  LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
  */
 
-#ifndef EXCES_ANY_ENTITY_MANAGER_IMPL_1403152314_HPP
-#define EXCES_ANY_ENTITY_MANAGER_IMPL_1403152314_HPP
-
 #include <exces/any/manager_intf.hpp>
 #include <unordered_map>
 
 namespace exces {
-
+//------------------------------------------------------------------------------
+// any_manager_impl
+//------------------------------------------------------------------------------
 template <typename Group>
 class any_manager_impl
  : public any_manager_intf<typename entity<Group>::type>
@@ -426,15 +425,15 @@ public:
 		for_each_comp(hlp);
 	}
 };
-
+//------------------------------------------------------------------------------
+// make_any_manager_impl
+//------------------------------------------------------------------------------
 template <typename Group>
 std::shared_ptr<any_manager_intf<typename entity<Group>::type>>
 make_any_manager_impl(manager<Group>& mgr)
 {
 	return std::make_shared<any_manager_impl<Group>>(mgr);
 }
-
+//------------------------------------------------------------------------------
 } // namespace exces
-
-#endif //include guard
 
