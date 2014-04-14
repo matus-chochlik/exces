@@ -992,6 +992,53 @@ public:
 		);
 	}
 
+	typedef _collection_update_key_list entity_update_op;
+
+	/// Begins the modification of entity components
+	/** This function must be called before updating the components
+	 *  of an entity with the raw_access function. After all changes are
+	 *  made the @c finish_update function must be called.
+	 *  This function returns a handle to the update operation that
+	 *  must be passed as the second argument to @c finish_update.
+	 *  This function must not be called when updating the entity
+	 *  with the @c add, @c remove, @c copy, etc. functions.
+	 *
+	 *  @see raw_access
+	 *  @see finish_update
+	 */
+	entity_update_op begin_update(entity_key ek)
+	{
+		_unique_lock ul(_mutex);
+		return _begin_collection_update(ek);
+	}
+
+	/// Begins the modification of entity components
+	entity_update_op begin_update(entity_type e)
+	{
+		return begin_update(_find_entity(e));
+	}
+
+	/// Finishes the modification of entity components
+	/** This function must be called after updating the components
+	 *  of an entity with the raw_access function. The update must
+	 *  be started by calling the @c begin_update function that
+	 *  returns a handle to the update operation.
+	 *
+	 *  @see raw_access
+	 *  @see begin_update
+	 */
+	void finish_update(entity_key ek, const entity_update_op& update_op)
+	{
+		_unique_lock ul(_mutex);
+		_finish_collection_update(ek, update_op);
+	}
+
+	/// Finishes the modification of entity components
+	void finish_update(entity_type e, const entity_update_op& update_op)
+	{
+		finish_update(_find_entity(e), update_op);
+	}
+
 	/// Gets a reference to the specified Component of the specified entity
 	/** This function provides direct access to the a component of the
 	 *  specified type of the specified entity. If the entity does not
@@ -1015,11 +1062,19 @@ public:
 	 *  auto lt_lock = m.lifetime_lock<Component1, Component2>();
 	 *  auto ra_lock = m.raw_access_lock<Component1&, Comoponent2>();
 	 *
+	 *  lt_lock.lock();
+	 *  ra_lock.lock();
+	 *
 	 *  for(auto& e: entities)
 	 *  {
-	 *      auto value = examine_c2(m.raw_access<Component2>());
-	 *      modify_c1(m.raw_access<Component1>(), value);
+	 *      auto value = examine_c2(m.raw_access<Component2>(e));
+	 *      auto mod_op = m.begin_update(e);
+	 *      modify_c1(m.raw_access<Component1>(e), value);
+	 *      m.finish_update(e, mod_op);
 	 *  }
+	 *
+	 *  ra_lock.unlock();
+	 *  lt_lock.unlock();
 	 *  @endcode
 	 *
 	 *  @see lifetime_lock

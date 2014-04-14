@@ -95,6 +95,43 @@ int main(void)
 			return true;
 		};
 
+	std::function<bool (
+		excess::manager&,
+		excess::manager::entity_key,
+		person&
+	)> skip5years = [](
+		excess::manager& m,
+		excess::manager::entity_key ek,
+		person& p
+	) -> bool
+	{
+		auto mod_op = m.begin_update(ek);
+		p.age += 5;
+		m.finish_update(ek, mod_op);
+		return true;
+	};
+
+	std::cout << "Children: ";
+	children.for_each(exces::adapt_func(printer));
+	std::cout << std::endl << std::endl;
+
+	std::cout << "Teenagers: ";
+	teenagers.for_each(exces::adapt_func(printer));
+	std::cout << std::endl << std::endl;
+
+	std::cout << "Adults: ";
+	adults.for_each(exces::adapt_func(printer));
+	std::cout << std::endl << std::endl;
+
+	std::cout << "Seniors: ";
+	seniors.for_each(exces::adapt_func(printer));
+	std::cout << std::endl << std::endl;
+
+	std::cout << "-----------------" << std::endl;
+	std::cout << "Skipping 5 years." << std::endl;
+	std::cout << "-----------------" << std::endl;
+	m.for_each(exces::adapt_func(skip5years));
+
 	std::cout << "Children: ";
 	children.for_each(exces::adapt_func(printer));
 	std::cout << std::endl << std::endl;

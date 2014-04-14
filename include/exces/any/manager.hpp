@@ -133,11 +133,23 @@ public:
 	}
 
 	template <typename ... Components>
+	any_manager& remove(Entity e)
+	{
+		return remove<Components...>(get_key(e));
+	}
+
+	template <typename ... Components>
 	any_manager& copy(any_entity_key_param aekf, any_entity_key_param aekt)
 	{
 		assert(_pimpl);
 		_pimpl->add(aekf, aekt, cnames<Components...>().data());
 		return *this;
+	}
+
+	template <typename ... Components>
+	any_manager& copy(Entity ef, Entity et)
+	{
+		return copy<Components...>(get_key(ef), get_key(et));
 	}
 
 	template <typename Component>
@@ -158,6 +170,30 @@ public:
 		);
 	}
 
+	typedef std::vector<std::size_t> entity_update_op;
+
+	entity_update_op begin_update(any_entity_key_param aek)
+	{
+		assert(_pimpl);
+		return _pimpl->begin_update(aek);
+	}
+
+	entity_update_op begin_update(Entity e)
+	{
+		return begin_update(get_key(e));
+	}
+
+	void finish_update(any_entity_key_param aek, const entity_update_op& uo)
+	{
+		assert(_pimpl);
+		_pimpl->finish_update(aek, uo);
+	}
+
+	void finish_update(Entity e, const entity_update_op& uo)
+	{
+		finish_update(get_key(e), uo);
+	}
+
 	template <typename Component>
 	Component& raw_access(any_entity_key_param aek)
 	{
@@ -174,6 +210,12 @@ public:
 	Component& rw(any_entity_key_param aek)
 	{
 		return raw_access<Component>(aek);
+	}
+
+	template <typename Component>
+	Component& rw(Entity e)
+	{
+		return rw<Component>(get_key(e));
 	}
 
 	any_manager& for_each(

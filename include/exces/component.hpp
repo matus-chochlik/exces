@@ -163,6 +163,47 @@ protected:
 	}
 };
 
+template <typename Group, typename Access>
+struct sh_comp_op_ctx
+{
+	sh_comp_op_ctx(
+		manager<Group>&, 
+		typename manager<Group>::entity_key
+	){ }
+};
+
+template <typename Group>
+struct sh_comp_op_ctx<Group, component_access_read_write>
+{
+	manager<Group>* _pmgr;
+	typename manager<Group>::entity_key _ekey;
+	typename manager<Group>::entity_update_op _upop;
+
+	sh_comp_op_ctx(
+		manager<Group>& mgr, 
+		typename manager<Group>::entity_key ekey
+	): _pmgr(&mgr)
+	 , _ekey(ekey)
+	 , _upop(_pmgr->begin_update(_ekey))
+	{ }
+
+	sh_comp_op_ctx(sh_comp_op_ctx&& tmp)
+	 : _pmgr(tmp._pmgr)
+	 , _ekey(tmp._ekey)
+	 , _upop(std::move(tmp._upop))
+	{
+		tmp._pmgr = nullptr;
+	}
+
+	~sh_comp_op_ctx(void)
+	{
+		if(_pmgr != nullptr)
+		{
+			_pmgr->finish_update(_ekey, _upop);
+		}
+	}
+};
+
 template <
 	typename Group,
 	typename Component,
@@ -185,6 +226,8 @@ private:
 	>::type _component_ptr;
 
 	_component_ptr _ptr;
+
+	sh_comp_op_ctx<Group, Access> _op_ctx;
 
 	typedef typename component_storage<Group>
 	::template component_access_lock<
@@ -212,14 +255,20 @@ private:
 		return result;
 	}
 public:
-	sh_comp_acc_op(_component_ptr&& ptr, _lockable&& lock)
-	 : _ptr(std::move(ptr))
+	sh_comp_acc_op(
+		manager<Group>& mgr,
+		typename manager<Group>::entity_key ekey,
+		_component_ptr&& ptr,
+		_lockable&& lock
+	): _ptr(std::move(ptr))
+	 , _op_ctx(mgr, ekey)
 	 , _lock(std::move(lock))
 	 , _guard(_lock)
 	{ }
 
 	sh_comp_acc_op(sh_comp_acc_op&& tmp)
 	 : _ptr(std::move(tmp._ptr))
+	 , _op_ctx(std::move(tmp._op_ctx))
 	 , _lock(std::move(tmp._lock))
 	 , _guard(std::move(tmp._guard))
 	{ }
@@ -379,6 +428,7 @@ public:
 	{
 		assert(is_valid());
 		return access_op(
+			*_pmanager, _ekey,
 			this->_make_ptr(
 				*_pmanager,
 				_cstorage(),

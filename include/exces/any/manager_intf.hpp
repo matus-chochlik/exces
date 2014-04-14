@@ -43,6 +43,11 @@ struct any_manager_intf
 	virtual any_lock lifetime_lock(const char*) = 0;
 	virtual any_lock raw_access_lock(const char*) = 0;
 
+	typedef std::vector<std::size_t> entity_update_op;
+	virtual entity_update_op begin_update(aekp) = 0;
+	virtual void finish_update(aekp, const entity_update_op&) = 0;
+
+
 	virtual void* raw_access(aekp, const char*) = 0;
 
 	virtual void for_each_imk(

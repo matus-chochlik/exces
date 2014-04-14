@@ -74,6 +74,10 @@ int main(void)
 			return true;
 		};
 
+	auto mod_op = am.begin_update(e[1]);
+	am.rw<location>(e[1]).str = "Earth";
+	am.finish_update(e[1], mod_op);
+
 	am.for_each(func1);
 
 	std::cout << std::endl;

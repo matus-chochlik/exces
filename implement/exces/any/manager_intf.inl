@@ -332,6 +332,18 @@ public:
 		return std::move(for_each_comp(hlp)._res);
 	}
 
+	typedef std::vector<std::size_t> entity_update_op;
+
+	entity_update_op begin_update(aekp aek)
+	{
+		return _rmgr.begin_update(_get(aek));
+	}
+
+	void finish_update(aekp aek, const entity_update_op& update_op)
+	{
+		_rmgr.finish_update(_get(aek), update_op);
+	}
+
 	struct _ra_hlp : _onec_hlp<_ra_hlp>
 	{
 		_ek_t _ek;
