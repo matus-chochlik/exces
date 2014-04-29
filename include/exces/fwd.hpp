@@ -24,6 +24,8 @@ class component_storage;
 template <typename Group>
 class manager;
 
+class iter_info;
+
 struct component_kind_normal
 {
 	typedef component_kind_normal type;
