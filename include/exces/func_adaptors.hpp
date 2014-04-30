@@ -24,6 +24,7 @@ namespace exces {
 #include <exces/func_adaptors/c.hpp>
 #include <exces/func_adaptors/ic.hpp>
 #include <exces/func_adaptors/cp.hpp>
+#include <exces/func_adaptors/icp.hpp>
 #include <exces/func_adaptors/cmv.hpp>
 #include <exces/func_adaptors/mkc.hpp>
 #include <exces/func_adaptors/imkc.hpp>
