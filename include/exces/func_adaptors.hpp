@@ -31,6 +31,7 @@ namespace exces {
 #include <exces/func_adaptors/mkcp.hpp>
 #include <exces/func_adaptors/imkcp.hpp>
 #include <exces/func_adaptors/mkec.hpp>
+#include <exces/func_adaptors/imkec.hpp>
 
 #endif //include guard
 

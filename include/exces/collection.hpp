@@ -14,7 +14,6 @@
 #include <exces/entity_range.hpp>
 #include <exces/entity_key_set.hpp>
 #include <exces/entity_filters.hpp>
-#include <exces/func_adaptors.hpp>
 #include <exces/iter_info.hpp>
 
 #include <map>

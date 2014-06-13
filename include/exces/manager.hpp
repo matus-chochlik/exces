@@ -13,7 +13,6 @@
 #include <exces/entity.hpp>
 #include <exces/entity_range.hpp>
 #include <exces/entity_filters.hpp>
-#include <exces/func_adaptors.hpp>
 #include <exces/storage.hpp>
 #include <exces/component.hpp>
 #include <exces/collection.hpp>

@@ -7,6 +7,8 @@
  *  LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
  */
 #include <exces/simple.hpp>
+#include <exces/func_adaptors/c.hpp>
+#include <exces/func_adaptors/mkc.hpp>
 
 #include <iostream>
 #include <vector>
