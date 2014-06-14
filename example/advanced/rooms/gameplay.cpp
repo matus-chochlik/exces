@@ -11,8 +11,6 @@
 #include "gameplay.hpp"
 #include "interaction.hpp"
 
-#include <exces/entity_io.hpp>
-
 #include <iostream>
 #include <sstream>
 #include <cassert>

@@ -12,7 +12,7 @@
 
 #include <exces/manager.hpp>
 #include <exces/implicit.hpp>
-#include <exces/entity_io.hpp>
+#include <exces/entity.hpp>
 
 #endif //include guard
 

@@ -7,8 +7,6 @@
  *  LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
  */
 
-#include <exces/entity_io.hpp>
-
 #include "components.hpp"
 #include "gameplay.hpp"
 #include "name_desc.hpp"
