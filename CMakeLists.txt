@@ -1,4 +1,4 @@
-#  Copyright 2012-2013 Matus Chochlik. Distributed under the Boost
+#  Copyright 2012-2014 Matus Chochlik. Distributed under the Boost
 #  Software License, Version 1.0. (See accompanying file
 #  LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 #
@@ -12,13 +12,26 @@ include(config/CPP11.cmake)
 
 include_directories(include)
 include_directories(implement)
+include_directories(${PROJECT_BINARY_DIR}/include)
 
 find_package(Boost)
 if(Boost_FOUND)
 	include_directories(${Boost_INCLUDE_DIRS})
+	set(BOOST_UUID_FOUND 1)
 else()
-	message(FATAL_ERROR "Boost UUID is required for exces.")
+	set(BOOST_UUID_FOUND 0)
 endif()
+
+# create the site-configuration header
+configure_file(
+	${PROJECT_SOURCE_DIR}/config/exces/site_config.hpp.in
+	${PROJECT_BINARY_DIR}/include/exces/site_config.hpp
+)
+
+install(
+	FILES ${PROJECT_BINARY_DIR}/include/exces/site_config.hpp
+	DESTINATION include/exces
+)
 
 add_subdirectory(example)
 add_subdirectory(doc)

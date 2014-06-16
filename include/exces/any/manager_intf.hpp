@@ -13,6 +13,7 @@
 #include <exces/any/entity_key.hpp>
 #include <exces/any/lock.hpp>
 #include <functional>
+#include <memory>
 
 namespace exces {
 

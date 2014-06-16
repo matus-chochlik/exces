@@ -12,7 +12,10 @@
 
 #include <exces/group.hpp>
 #include <exces/entity/default.hpp>
+
+#if EXCES_BOOST_UUID_FOUND
 #include <exces/entity/boost_uuid.hpp>
+#endif
 
 namespace exces {
 
@@ -20,7 +23,6 @@ namespace exces {
 template <typename Group = default_group>
 struct entity
 {
-	//typedef boost_uuid_entity type;
 	typedef default_entity type;
 };
 
