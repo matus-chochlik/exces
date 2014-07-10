@@ -2,7 +2,7 @@
  *  @file exces/entity.hpp
  *  @brief Implements entity
  *
- *  Copyright 2012-2013 Matus Chochlik. Distributed under the Boost
+ *  Copyright 2012-2014 Matus Chochlik. Distributed under the Boost
  *  Software License, Version 1.0. (See accompanying file
  *  LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
  */
@@ -12,10 +12,6 @@
 
 #include <exces/group.hpp>
 #include <exces/entity/default.hpp>
-
-#if EXCES_BOOST_UUID_FOUND
-#include <exces/entity/boost_uuid.hpp>
-#endif
 
 namespace exces {
 
@@ -27,6 +23,15 @@ struct entity
 };
 
 } // namespace exces
+
+#define EXCES_USE_ENTITY_TYPE(GROUP, ENTITY_TYPE) \
+namespace exces { \
+template <> \
+struct entity<EXCES_GROUP_SEL(GROUP)> \
+{ \
+	typedef ENTITY_TYPE##_entity type; \
+};\
+}
 
 #endif //include guard
 
