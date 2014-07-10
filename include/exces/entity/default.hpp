@@ -10,64 +10,11 @@
 #ifndef EXCES_ENTITY_DEFAULT_1212101511_HPP
 #define EXCES_ENTITY_DEFAULT_1212101511_HPP
 
-#include <cstdint>
-#include <cassert>
-#include <iostream>
+#include <exces/entity/uintmax.hpp>
 
 namespace exces {
 
-class default_entity
-{
-private:
-	uintmax_t _id;
-
-	static uintmax_t _gen_id(void)
-	{
-		static uintmax_t id = 0;
-		assert(id != UINTMAX_MAX);
-		return ++id;
-	}
-public:
-	default_entity(void)
-	 : _id(_gen_id())
-	{ }
-
-	friend bool operator == (default_entity e1, default_entity e2)
-	{
-		return e1._id == e2._id;
-	}
-
-	friend bool operator != (default_entity e1, default_entity e2)
-	{
-		return e1._id != e2._id;
-	}
-
-	friend bool operator <  (default_entity e1, default_entity e2)
-	{
-		return e1._id <  e2._id;
-	}
-
-	friend bool operator <= (default_entity e1, default_entity e2)
-	{
-		return e1._id <= e2._id;
-	}
-
-	friend bool operator >  (default_entity e1, default_entity e2)
-	{
-		return e1._id >  e2._id;
-	}
-
-	friend bool operator >= (default_entity e1, default_entity e2)
-	{
-		return e1._id >= e2._id;
-	}
-
-	friend std::ostream& operator << (std::ostream& out, default_entity e)
-	{
-		out << "{" << e._id << "}";
-		return out;
-	}
-};
+typedef uintmax_entity default_entity;
 
 } // namespace exces
 

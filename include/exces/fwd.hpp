@@ -24,6 +24,9 @@ class component_storage;
 template <typename Group>
 class manager;
 
+template <typename Group>
+class entity;
+
 class iter_info;
 
 struct component_kind_normal
