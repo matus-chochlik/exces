@@ -25,37 +25,37 @@ public:
 	 : _id(std::move(id))
 	{ }
 
-	friend bool operator == (string_entity e1, string_entity e2)
+	friend bool operator == (const string_entity& e1, const string_entity& e2)
 	{
 		return e1._id == e2._id;
 	}
 
-	friend bool operator != (string_entity e1, string_entity e2)
+	friend bool operator != (const string_entity& e1, const string_entity& e2)
 	{
 		return e1._id != e2._id;
 	}
 
-	friend bool operator <  (string_entity e1, string_entity e2)
+	friend bool operator <  (const string_entity& e1, const string_entity& e2)
 	{
 		return e1._id <  e2._id;
 	}
 
-	friend bool operator <= (string_entity e1, string_entity e2)
+	friend bool operator <= (const string_entity& e1, const string_entity& e2)
 	{
 		return e1._id <= e2._id;
 	}
 
-	friend bool operator >  (string_entity e1, string_entity e2)
+	friend bool operator >  (const string_entity& e1, const string_entity& e2)
 	{
 		return e1._id >  e2._id;
 	}
 
-	friend bool operator >= (string_entity e1, string_entity e2)
+	friend bool operator >= (const string_entity& e1, const string_entity& e2)
 	{
 		return e1._id >= e2._id;
 	}
 
-	friend std::ostream& operator << (std::ostream& out, string_entity e)
+	friend std::ostream& operator << (std::ostream& out, const string_entity& e)
 	{
 		out << "{" << e._id << "}";
 		return out;
