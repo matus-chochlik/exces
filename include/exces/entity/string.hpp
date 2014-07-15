@@ -25,6 +25,11 @@ public:
 	 : _id(std::move(id))
 	{ }
 
+	static string_entity nil(void)
+	{
+		return string_entity(std::string());
+	}
+
 	friend bool operator == (const string_entity& e1, const string_entity& e2)
 	{
 		return e1._id == e2._id;

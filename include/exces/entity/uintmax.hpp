@@ -28,9 +28,18 @@ private:
 		return ++id;
 	}
 public:
+	uintmax_entity(uintmax_t init)
+	 : _id(init)
+	{ }
+
 	uintmax_entity(void)
 	 : _id(_gen_id())
 	{ }
+
+	static uintmax_entity nil(void)
+	{
+		return uintmax_entity(0);
+	}
 
 	friend bool operator == (uintmax_entity e1, uintmax_entity e2)
 	{
