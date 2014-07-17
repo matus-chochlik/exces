@@ -19,7 +19,7 @@
 #include <functional>
 
 namespace exces {
-namespace aux_ {
+namespace detail {
 
 template <typename Group, typename Component, typename Kind>
 struct component_kind_storage_locking
@@ -36,11 +36,11 @@ struct component_kind_storage_locking<Group, Component, component_kind_backbuf>
 	typedef poly_lock unique_lock;
 };
 
-} // namespace aux_
+} // namespace detail
 
 template <typename Group, typename Component>
 struct component_storage_locking
- : aux_::component_kind_storage_locking<
+ : detail::component_kind_storage_locking<
 	Group,
 	Component,
 	typename component_kind<Component, Group>::type

@@ -11,11 +11,11 @@
 #define EXCES_ANY_ENTITY_KEY_1403152314_HPP
 
 #include <exces/manager.hpp>
-#include <exces/aux_/metaprog.hpp>
+#include <exces/detail/metaprog.hpp>
 #include <cstring>
 
 namespace exces {
-namespace aux_ {
+namespace detail {
 
 template <bool Trivial>
 struct any_entity_key_cctr;
@@ -134,7 +134,7 @@ struct any_entity_key_dtr<false>
 	}
 };
 
-} // namespace aux_
+} // namespace detail
 
 /// Type erasure for manager<Group>::entity_key
 /** Exces users should treat any_entity_key as an opaque type supporting
@@ -151,11 +151,11 @@ private:
 	>::type _store_t;
 	_store_t _store;
 
-	aux_::any_entity_key_cctr<
+	detail::any_entity_key_cctr<
 		mp::is_trivially_copyable<_ek>::value
 	> _copy;
 
-	aux_::any_entity_key_dtr<
+	detail::any_entity_key_dtr<
 		mp::is_trivially_destructible<_ek>::value
 	> _destroy;
 

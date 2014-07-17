@@ -420,9 +420,9 @@ void
 manager<Group>::
 _instantiate(void)
 {
-	aux_::component_bitset<Group> cb;
-	aux_::component_index_map<Group> cim;
-	const aux_::component_index_map<Group>& ccim = cim;
+	detail::component_bitset<Group> cb;
+	detail::component_index_map<Group> cim;
+	const detail::component_index_map<Group>& ccim = cim;
 	cim.get(cb);
 	ccim.get(cb);
 	

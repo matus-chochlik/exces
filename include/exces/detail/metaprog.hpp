@@ -1,5 +1,5 @@
 /**
- *  @file exces/aux_/metaprog.hpp
+ *  @file exces/detail/metaprog.hpp
  *  @brief Implementation of meta-programming utilities
  *
  *  Copyright 2012-2014 Matus Chochlik. Distributed under the Boost

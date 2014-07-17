@@ -2,7 +2,7 @@
  *  @file exces/group.hpp
  *  @brief Implements component groups
  *
- *  Copyright 2012-2013 Matus Chochlik. Distributed under the Boost
+ *  Copyright 2012-2014 Matus Chochlik. Distributed under the Boost
  *  Software License, Version 1.0. (See accompanying file
  *  LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
  */
@@ -10,7 +10,7 @@
 #ifndef EXCES_GROUP_1212101431_HPP
 #define EXCES_GROUP_1212101431_HPP
 
-#include <exces/aux_/global_list.hpp>
+#include <exces/detail/global_list.hpp>
 #include <exces/fwd.hpp>
 
 #include <type_traits>

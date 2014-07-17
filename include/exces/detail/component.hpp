@@ -1,5 +1,5 @@
 /**
- *  @file exces/aux_/component.hpp
+ *  @file exces/detail/component.hpp
  *  @brief Implements component-related helpers
  *
  *  Copyright 2012-2014 Matus Chochlik. Distributed under the Boost
@@ -11,7 +11,7 @@
 #define EXCES_AUX_COMPONENT_1212101457_HPP
 
 #include <exces/fwd.hpp>
-#include <exces/aux_/metaprog.hpp>
+#include <exces/detail/metaprog.hpp>
 
 #include <map>
 #include <array>
@@ -19,7 +19,7 @@
 
 namespace exces {
 
-namespace aux_ {
+namespace detail {
 
 template <typename Group>
 struct component_less_mf
@@ -103,7 +103,7 @@ public:
 	const index_vector& get(const component_bitset<Group>& bits);
 };
 
-} // namespace aux_
+} // namespace detail
 } // namespace exces
 
 #endif //include guard

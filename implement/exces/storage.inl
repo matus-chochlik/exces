@@ -7,7 +7,7 @@
  *  LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
  */
 
-#include <exces/aux_/metaprog.hpp>
+#include <exces/detail/metaprog.hpp>
 #include <thread>
 #include <vector>
 #include <array>

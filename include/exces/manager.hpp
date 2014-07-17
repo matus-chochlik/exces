@@ -94,7 +94,7 @@ private:
 
 	template <typename ... C>
 	struct _sortn
-	 : aux_::sort_components<Group, mp::typelist<C...>>
+	 : detail::sort_components<Group, mp::typelist<C...>>
 	{ };
 
 	// component storage
@@ -106,7 +106,7 @@ private:
 
 	// type of the bitset used to indicate which components
 	// an entity has
-	typedef aux_::component_bitset<Group> _component_bitset;
+	typedef detail::component_bitset<Group> _component_bitset;
 
 	// mutex and lock types
 	typedef group_locking<Group> _locking;
@@ -122,7 +122,7 @@ private:
 	// a particular combination of bits set into a vector of indices
 	// to a vector-of-keys pointing to the individual components
 	// (ordered by their ids) in the storage.
-	typedef aux_::component_index_map<Group> _component_index_map;
+	typedef detail::component_index_map<Group> _component_index_map;
 
 	_component_index_map _component_indices;
 
@@ -213,7 +213,7 @@ private:
 	template <typename Sequence>
 	static const _component_bitset& _get_bits(const Sequence&)
 	{
-		typename aux_::sort_components<
+		typename detail::sort_components<
 			Group,
 			typename _fixl<
 				typename mp::as_typelist<Sequence>::type
@@ -225,7 +225,7 @@ private:
 	template <typename ... Components>
 	static const _component_bitset& _get_bits(void)
 	{
-		typename aux_::sort_components<
+		typename detail::sort_components<
 			Group,
 			typename _fixn<Components...>::type
 		>::type tl;

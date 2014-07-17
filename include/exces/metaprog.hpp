@@ -10,7 +10,7 @@
 #ifndef EXCES_METAPROG_1304231127_HPP
 #define EXCES_METAPROG_1304231127_HPP
 
-#include <exces/aux_/metaprog.hpp>
+#include <exces/detail/metaprog.hpp>
 
 namespace exces {
 

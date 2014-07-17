@@ -1,8 +1,8 @@
 /**
- *  @file exces/aux_/global_list.hpp
+ *  @file exces/detail/global_list.hpp
  *  @brief Implements a compile-time linked type lists
  *
- *  Copyright 2008-2013 Matus Chochlik. Distributed under the Boost
+ *  Copyright 2008-2014 Matus Chochlik. Distributed under the Boost
  *  Software License, Version 1.0. (See accompanying file
  *  LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
  */
@@ -10,8 +10,8 @@
 #ifndef EXCES_AUX_GLOBAL_LIST_1011291729_HPP
 #define EXCES_AUX_GLOBAL_LIST_1011291729_HPP
 
-#include <exces/aux_/counter.hpp>
-#include <exces/aux_/metaprog.hpp>
+#include <exces/detail/counter.hpp>
+#include <exces/detail/metaprog.hpp>
 
 namespace exces {
 namespace cntr {

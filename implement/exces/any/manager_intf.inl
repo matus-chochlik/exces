@@ -168,7 +168,7 @@ public:
 
 	struct _has_as_hlp : _allc_hlp<_has_as_hlp>
 	{
-		aux_::component_bitset<Group> _bits;
+		detail::component_bitset<Group> _bits;
 
 		_has_as_hlp(_mgr_t& mgr, const char** cnames)
 		 : _allc_hlp<_has_as_hlp>(mgr, cnames)

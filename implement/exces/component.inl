@@ -8,7 +8,7 @@
  */
 
 namespace exces {
-namespace aux_ {
+namespace detail {
 
 //------------------------------------------------------------------------------
 // component_index_map
@@ -50,6 +50,6 @@ get(const component_bitset<Group>& bits)
 	return r.first->second;
 }
 //------------------------------------------------------------------------------
-} // namespace aux_
+} // namespace detail
 } // namespace exces
 

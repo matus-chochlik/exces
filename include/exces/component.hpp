@@ -12,13 +12,13 @@
 
 #include <exces/group.hpp>
 #include <exces/storage.hpp>
-#include <exces/aux_/component.hpp>
+#include <exces/detail/component.hpp>
 
 #include <cassert>
 #include <type_traits>
 
 namespace exces {
-namespace aux_ {
+namespace detail {
 
 // sh_comp_base
 template <
@@ -305,7 +305,7 @@ template <
 	typename Access
 >
 class shared_component
- : public aux_::sh_comp_base<
+ : public detail::sh_comp_base<
 	Group,
 	Component,
 	typename component_kind<Component, Group>::type,
@@ -313,7 +313,7 @@ class shared_component
 >
 {
 private:
-	typedef aux_::sh_comp_base<
+	typedef detail::sh_comp_base<
 		Group,
 		Component,
 		typename component_kind<Component, Group>::type,
@@ -416,7 +416,7 @@ public:
 		return !is_valid();
 	}
 
-	typedef aux_::sh_comp_acc_op<
+	typedef detail::sh_comp_acc_op<
 		Group,
 		Component,
 		typename component_kind<Component>::type,
