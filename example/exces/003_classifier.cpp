@@ -7,7 +7,7 @@
  *  LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
  */
 #include <exces/simple.hpp>
-#include <exces/func_adaptors/c.hpp>
+#include <exces/func_adaptors/ic.hpp>
 #include <exces/func_adaptors/mkc.hpp>
 
 #include <iostream>
@@ -75,14 +75,18 @@ int main(void)
 		std::cout << names[i] << ": ";
 		named.for_each(
 			names[i],
-			exces::adapt_func_c<surname>(
-				[](const surname& the_surname) -> bool
-				{
-					std::cout << the_surname << " ";
-					return true;
-				}
-			)
-		);
+			exces::adapt_func_ic<surname>([](
+				const exces::iter_info& info,
+				const surname& the_surname
+			) -> bool
+			{
+				std::cout << the_surname;
+				if(info.is_last())
+					std::cout << ".";
+				else std::cout << ", ";
+				return true;
+			}
+		));
 		std::cout << std::endl;
 	}
 

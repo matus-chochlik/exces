@@ -1,5 +1,5 @@
 /**
- *  @example exces/003_collection.cpp
+ *  @example exces/004_collection.cpp
  *  @brief Simple example of entity collection usage.
  *
  *  Copyright 2012-2014 Matus Chochlik. Distributed under the Boost
@@ -7,7 +7,7 @@
  *  LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
  */
 #include <exces/simple.hpp>
-#include <exces/func_adaptors/c.hpp>
+#include <exces/func_adaptors/ic.hpp>
 #include <exces/func_adaptors/mkc.hpp>
 
 #include <iostream>
@@ -87,15 +87,18 @@ int main(void)
 	excess::collection adults(m, &person::is_adult);
 	excess::collection seniors(m, &person::is_senior);
 
-	std::function<bool (const person&)> printer =
-		[](const person& p) -> bool
-		{
-			std::cout
-				<< p.name << " "
-				<< p.surname << " ("
-				<< p.age << "); ";
-			return true;
-		};
+	std::function<bool (const exces::iter_info&, const person&)>
+	printer = [](const exces::iter_info& ii, const person& p) -> bool
+	{
+		std::cout
+			<< p.name << " "
+			<< p.surname << " ("
+			<< p.age << ")";
+		if(ii.is_last())
+			std::cout << ".";
+		else std::cout << ", ";
+		return true;
+	};
 
 	std::function<bool (
 		excess::manager&,
