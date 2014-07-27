@@ -97,9 +97,18 @@ private:
 	 : detail::sort_components<Group, mp::typelist<C...>>
 	{ };
 
+	// mutex and lock types
+	typedef group_locking<Group> _locking;
+	typedef typename _locking::shared_mutex _shared_mutex;
+	typedef typename _locking::shared_lock _shared_lock;
+	typedef typename _locking::unique_lock _unique_lock;
+	typedef typename _locking::once_flag _once_flag;
+
 	// component storage
 	typedef component_storage<Group> _component_storage;
 	_component_storage _storage;
+	// the component storage mutex
+	_shared_mutex _storage_mutex;
 
 	// the count of components in the Group
 	typedef mp::size<components<Group> > _component_count;
@@ -108,16 +117,6 @@ private:
 	// an entity has
 	typedef detail::component_bitset<Group> _component_bitset;
 
-	// mutex and lock types
-	typedef group_locking<Group> _locking;
-	typedef typename _locking::shared_mutex _shared_mutex;
-	typedef typename _locking::shared_lock _shared_lock;
-	typedef typename _locking::unique_lock _unique_lock;
-	typedef typename _locking::once_flag _once_flag;
-
-	// the mutex synchronizing access to manager's internal data
-	_shared_mutex _mutex;
-
 	// converts static group-unique component-ids for a bitset with
 	// a particular combination of bits set into a vector of indices
 	// to a vector-of-keys pointing to the individual components
@@ -125,6 +124,8 @@ private:
 	typedef detail::component_index_map<Group> _component_index_map;
 
 	_component_index_map _component_indices;
+	// the component index map mutex
+	_shared_mutex _component_index_mutex;
 
 	// a vector of keys that allow to access the components
 	// (ordered by their ids) in the storage
@@ -248,6 +249,10 @@ private:
 	> _entity_info_map;
 	typedef typename _entity_info_map::value_type _entity_info_entry;
 	_entity_info_map _entities;
+	// the entity map mutex
+	_shared_mutex _entity_map_mutex;
+	// the entity info mutex
+	_shared_mutex _entity_info_mutex;
 
 	// helper functor that adds a Component into the storage
 	// and remembers the key in a vector at the position specified
@@ -371,8 +376,10 @@ private:
 	typename _entity_info_map::iterator
 	_find_entity(typename entity<Group>::type e);
 
-	std::vector<collection_intf<Group>*> _collections;
 	friend class collection_intf<Group>;
+	std::vector<collection_intf<Group>*> _collections;
+	// the collection list mutex
+	_shared_mutex _collection_mutex;
 
 	void add_collection(collection_intf<Group>* cl);
 	void remove_collection(collection_intf<Group>* cl);
@@ -420,7 +427,7 @@ public:
 		_entity_info init;
 
 		// exclusive access to the entity map is required
-		_unique_lock ul(_mutex);
+		_unique_lock ul(_entity_map_mutex);
 
 		for(std::size_t i=0; i!=n; ++i)
 		{
@@ -450,6 +457,7 @@ public:
 	/// Returns true if this manager manages the specified entity
 	bool has_key(entity_type e)
 	{
+		_shared_lock sl(_entity_map_mutex);
 		return _has_entity(e);
 	}
 
@@ -464,6 +472,7 @@ public:
 	 */
 	entity_key get_key(entity_type e)
 	{
+		_shared_lock sl(_entity_map_mutex);
 		return _get_entity(e);
 	}
 
@@ -483,6 +492,7 @@ public:
 	template <typename Sequence>
 	manager& reserve_seq(std::size_t n, Sequence seq = Sequence())
 	{
+		_unique_lock ul(_storage_mutex);
 		_component_reserver reserver = { _storage, n };
 		mp::for_each<Sequence>(reserver);
 		return *this;
@@ -702,8 +712,12 @@ public:
 	)
 	{
 		const std::size_t cid = component_id<Component, Group>::value;
-		assert(ek->second._component_bits.test(cid));
 
+		_unique_lock ulst(_storage_mutex);
+		_unique_lock ulci(_component_index_mutex);
+		_shared_lock slei(_entity_info_mutex);
+
+		assert(ek->second._component_bits.test(cid));
 		_component_key_vector& new_keys = ek->second._component_keys;
 
 		const typename _component_index_map::index_vector
@@ -800,8 +814,8 @@ public:
 		typedef typename _fix1<Component>::type fixed_C;
 		const std::size_t cid = component_id<fixed_C, Group>::value;
 
-		_shared_lock sl(_mutex);
 		assert(ek != _entities.end());
+		_shared_lock slei(_entity_info_mutex);
 		return ek->second._component_bits.test(cid);
 	}
 
@@ -812,24 +826,26 @@ public:
 		typedef typename _fix1<Component>::type fixed_C;
 		const std::size_t cid = component_id<fixed_C, Group>::value;
 
-		_shared_lock sl(_mutex);
+		_shared_lock slem(_entity_map_mutex);
 		typename _entity_info_map::const_iterator ek = _entities.find(e);
 		if(ek == _entities.end()) return false;
+		_shared_lock slei(_entity_info_mutex);
 		return ek->second._component_bits.test(cid);
 	}
 
 	bool has_all_bits(entity_key ek, const _component_bitset& bits)
 	{
-		_shared_lock sl(_mutex);
 		assert(ek != _entities.end());
+		_shared_lock slei(_entity_info_mutex);
 		return ((ek->second._component_bits & bits) == bits);
 	}
 
 	bool has_all_bits(entity_type e, const _component_bitset& bits)
 	{
-		_shared_lock sl(_mutex);
+		_shared_lock slem(_entity_map_mutex);
 		typename _entity_info_map::const_iterator ek = _entities.find(e);
 		if(ek == _entities.end()) return false;
+		_shared_lock slei(_entity_info_mutex);
 		return ((ek->second._component_bits & bits) == bits);
 	}
 
@@ -865,16 +881,17 @@ public:
 
 	bool has_some_bits(entity_key ek, const _component_bitset& bits)
 	{
-		_shared_lock sl(_mutex);
 		assert(ek != _entities.end());
+		_shared_lock slei(_entity_info_mutex);
 		return (ek->second._component_bits & bits).any();
 	}
 
 	bool has_some_bits(entity_type e, const _component_bitset& bits)
 	{
-		_shared_lock sl(_mutex);
+		_shared_lock slem(_entity_map_mutex);
 		typename _entity_info_map::const_iterator ek = _entities.find(e);
 		if(ek == _entities.end()) return false;
+		_shared_lock slei(_entity_info_mutex);
 		return (ek->second._component_bits & bits).any();
 	}
 
@@ -1007,7 +1024,7 @@ public:
 	 */
 	entity_update_op begin_update(entity_key ek)
 	{
-		_unique_lock ul(_mutex);
+		_unique_lock ul(_collection_mutex);
 		return _begin_collection_update(ek);
 	}
 
@@ -1028,7 +1045,7 @@ public:
 	 */
 	void finish_update(entity_key ek, const entity_update_op& update_op)
 	{
-		_unique_lock ul(_mutex);
+		_unique_lock ul(_collection_mutex);
 		_finish_collection_update(ek, update_op);
 	}
 
@@ -1087,7 +1104,8 @@ public:
 		std::size_t cid = component_id<_fixed_C, Group>::value;
 		typename _component_storage::component_key key;
 
-		_shared_lock sl(_mutex);
+		_unique_lock ulci(_component_index_mutex);
+		_shared_lock slem(_entity_map_mutex);
 		assert(ek->second._component_bits.test(cid));
 
 		typename component_index<_fixed_C>::type cidx =
@@ -1142,10 +1160,10 @@ public:
 		std::size_t cid = component_id<Component, Group>::value;
 		typename _component_storage::component_key key;
 
-		_shared_lock sl(_mutex);
+		_unique_lock ulci(_component_index_mutex);
+		_shared_lock slei(_entity_info_mutex);
 		if(ek->second._component_bits.test(cid))
 		{
-
 			typename component_index<Component>::type cidx =
 				_component_indices.get(
 					ek->second._component_bits
@@ -1331,9 +1349,9 @@ public:
 		>& predicate
 	)
 	{
-		_shared_lock sl(_mutex);
+		_shared_lock slem(_entity_map_mutex);
 		return entity_range(
-			std::move(sl),
+			std::move(slem),
 			*this, 
 			manager_entity_range<Group>(
 				_entities.begin(),

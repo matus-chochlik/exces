@@ -17,7 +17,7 @@ typename manager<Group>::_entity_info_map::iterator
 manager<Group>::
 _find_entity(typename entity<Group>::type e)
 {
-	_shared_lock sl(_mutex);
+	_shared_lock sl(_entity_map_mutex);
 
 	typename _entity_info_map::iterator p = _entities.find(e);
 	
@@ -36,7 +36,8 @@ void
 manager<Group>::
 add_collection(collection_intf<Group>* cl)
 {
-	_unique_lock ul(_mutex);
+	_shared_lock slem(_entity_map_mutex);
+	_unique_lock ulcm(_collection_mutex);
 
 	assert(cl != nullptr);
 	assert(std::find(
@@ -66,7 +67,7 @@ move_collection(
 	collection_intf<Group>* new_cl
 )
 {
-	_unique_lock ul(_mutex);
+	_unique_lock ul(_collection_mutex);
 
 	assert(old_cl != nullptr);
 	assert(new_cl != nullptr);
@@ -94,7 +95,7 @@ void
 manager<Group>::
 remove_collection(collection_intf<Group>* cl)
 {
-	_unique_lock ul(_mutex);
+	_unique_lock ul(_collection_mutex);
 
 	auto p = std::find(
 		_collections.begin(),
@@ -112,7 +113,7 @@ _begin_collection_update(
 	typename manager<Group>::_entity_info_map::iterator key
 )
 {
-	// the caller must have exclusive lock on _mutex
+	_unique_lock ul(_collection_mutex);
 
 	auto i = _collections.begin();
 	auto e = _collections.end();
@@ -140,7 +141,7 @@ _finish_collection_update(
 	const typename manager<Group>::_collection_update_key_list& update_keys
 )
 {
-	// the caller must have exclusive lock on _mutex
+	_unique_lock ul(_collection_mutex);
 
 	assert(_collections.size() == update_keys.size());
 
@@ -170,7 +171,8 @@ _do_add_seq(
 	>& for_each_seq
 )
 {
-	_unique_lock ul(_mutex);
+	_unique_lock ulci(_component_index_mutex);
+	_unique_lock ulei(_entity_info_mutex);
 
 	auto updates = _begin_collection_update(ek);
 
@@ -183,7 +185,10 @@ _do_add_seq(
 	const std::size_t cc = _component_count();
 	_component_key_vector tmp_keys(cc);
 	_component_adder adder = { _storage, tmp_keys };
-	for_each_seq(adder);
+	{
+		_unique_lock uls(_storage_mutex);
+		for_each_seq(adder);
+	}
 	
 	_component_key_vector  new_keys(new_bits.count());
 	_component_key_vector& old_keys = ek->second._component_keys;
@@ -228,7 +233,8 @@ _do_rem_seq(
 	>& for_each_seq
 )
 {
-	_unique_lock ul(_mutex);
+	_unique_lock ulci(_component_index_mutex);
+	_unique_lock ulei(_entity_info_mutex);
 
 	auto updates = _begin_collection_update(ek);
 
@@ -278,7 +284,10 @@ _do_rem_seq(
 	}
 
 	_component_remover remover = { _storage, tmp_keys };
-	for_each_seq(remover);
+	{
+		_unique_lock uls(_storage_mutex);
+		for_each_seq(remover);
+	}
 
 	swap(new_keys, old_keys);
 
@@ -296,7 +305,8 @@ _do_rep_seq(
 	>& for_each_seq
 )
 {
-	_unique_lock ul(_mutex);
+	_unique_lock ulci(_component_index_mutex);
+	_unique_lock ulei(_entity_info_mutex);
 
 	auto updates = _begin_collection_update(ek);
 
@@ -328,7 +338,10 @@ _do_rep_seq(
 	}
 
 	_component_replacer replacer = { _storage, tmp_keys };
-	for_each_seq(replacer);
+	{
+		_unique_lock uls(_storage_mutex);
+		for_each_seq(replacer);
+	}
 
 	for(std::size_t i=0; i!=cc; ++i)
 	{
@@ -337,7 +350,6 @@ _do_rep_seq(
 			new_keys[new_map[i]] = tmp_keys[i];
 		}
 	}
-
 
 	_finish_collection_update(ek, updates);
 }
@@ -354,7 +366,8 @@ _do_cpy_seq(
 	>& for_each_seq
 )
 {
-	_unique_lock ul(_mutex);
+	_unique_lock ulci(_component_index_mutex);
+	_unique_lock ulei(_entity_info_mutex);
 
 	auto updates = _begin_collection_update(t);
 
@@ -376,7 +389,10 @@ _do_cpy_seq(
 		src_map,
 		dst_map
 	};
-	for_each_seq(copier);
+	{
+		_unique_lock uls(_storage_mutex);
+		for_each_seq(copier);
+	}
 
 	_finish_collection_update(t, updates);
 }
@@ -392,7 +408,7 @@ for_each(
 	)>& function
 )
 {
-	_shared_lock sl(_mutex);
+	_shared_lock slem(_entity_map_mutex);
 
 	typename _entity_info_map::iterator
 		i = _entities.begin(),
