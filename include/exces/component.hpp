@@ -456,17 +456,21 @@ public:
 	}
 };
 
-template <typename Component>
+template <typename ... Components>
 inline typename mp::if_c<
-	std::is_reference<Component>::value &&
-	not(std::is_const<Component>::value),
+	mp::and_c<
+		std::is_reference<Components>::value &&
+		not(std::is_const<Components>::value)...
+	>::value,
 	component_access_read_write,
 	component_access_read_only
 >::type get_component_access(void)
 {
 	return typename mp::if_c<
-		std::is_reference<Component>::value &&
-		not(std::is_const<Component>::value),
+		mp::and_c<
+			std::is_reference<Components>::value &&
+			not(std::is_const<Components>::value)...
+		>::value,
 		component_access_read_write,
 		component_access_read_only
 	>::type();

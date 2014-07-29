@@ -229,7 +229,7 @@ public:
 	{
 		entity_type e;
 
-		bool operator()(named& n, contained& c) const
+		bool operator()(const named& n, const contained& c) const
 		{
 			if(c.container == e)
 			{
@@ -251,7 +251,7 @@ public:
 				std::cout << " contains { ";
 				contained_printer cp = { e };
 				// for each entity with the specified components
-				m.for_each(exces::adapt_func_c<named&, contained&>(cp));
+				m.for_each(exces::adapt_func_c<named, contained>(cp));
 				std::cout << "}";
 			}
 			if(m.has<physical>(k))

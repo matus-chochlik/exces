@@ -7,11 +7,12 @@
  *  LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
  */
 #include <exces/simple.hpp>
+#include <exces/func_adaptors/c.hpp>
 #include <exces/func_adaptors/ic.hpp>
-#include <exces/func_adaptors/mkc.hpp>
 
 #include <iostream>
 #include <vector>
+#include <ctime>
 
 struct person
 {
@@ -51,6 +52,8 @@ EXCES_REG_COMPONENT(person)
 
 int main(void)
 {
+	std::srand(std::time(nullptr));
+
 	const char* names[] = {
 		"John", "Paul", "Martin", "Joseph", "William",
 		"Patrick", "Sean", "Bruce", "Richard", "Daniel",
@@ -100,19 +103,10 @@ int main(void)
 		return true;
 	};
 
-	std::function<bool (
-		excess::manager&,
-		excess::manager::entity_key,
-		person&
-	)> skip5years = [](
-		excess::manager& m,
-		excess::manager::entity_key ek,
-		person& p
-	) -> bool
+	std::function<bool (person&)>
+	skip5years = [](person& p) -> bool
 	{
-		auto mod_op = m.begin_update(ek);
 		p.age += 5;
-		m.finish_update(ek, mod_op);
 		return true;
 	};
 

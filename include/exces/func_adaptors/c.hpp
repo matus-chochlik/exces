@@ -10,7 +10,7 @@
 #ifndef EXCES_FUNC_ADAPTORS_C_1404292124_HPP
 #define EXCES_FUNC_ADAPTORS_C_1404292124_HPP
 
-#include <exces/fwd.hpp>
+#include <exces/detail/func_adaptors.hpp>
 #include <functional>
 
 namespace exces {
@@ -28,6 +28,7 @@ namespace exces {
  */
 template <typename Functor, typename ... Components>
 struct func_adaptor_c
+ : aux_::auto_update_func_adaptor<Components...>
 {
 	Functor _functor;
 
@@ -51,8 +52,13 @@ struct func_adaptor_c
 	{
 		if(m.template has_all<Components...>(k))
 		{
-			if(!_functor(m.template raw_access<Components>(k)...))
-				return false;
+			auto up_op = this->begin_update(m, k);
+			bool cont = _functor(
+				m.template raw_access<Components>(k)...
+			);
+			this->finish_update(m, k, up_op);
+
+			if(!cont) return false;
 		}
 		return true;
 	}

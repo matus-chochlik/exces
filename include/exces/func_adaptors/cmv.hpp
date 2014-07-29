@@ -10,7 +10,7 @@
 #ifndef EXCES_FUNC_ADAPTORS_CMV_1404292124_HPP
 #define EXCES_FUNC_ADAPTORS_CMV_1404292124_HPP
 
-#include <exces/fwd.hpp>
+#include <exces/detail/func_adaptors.hpp>
 #include <functional>
 
 namespace exces {
@@ -28,6 +28,7 @@ namespace exces {
  */
 template <typename Functor, typename MemVarType, typename Component>
 struct func_adaptor_cmv
+ : aux_::auto_update_func_adaptor<Component>
 {
 	Functor _functor;
 	MemVarType Component::*_mem_var_ptr;
@@ -56,10 +57,14 @@ struct func_adaptor_cmv
 	{
 		if(m.template has<Component>(k))
 		{
-			if(!_functor(
+			auto up_op = this->begin_update(m, k);
+			bool cont = _functor(
 				m.template raw_access<Component>(k)
 					.*_mem_var_ptr
-			)) return false;
+			);
+			this->finish_update(m, k, up_op);
+
+			if(!cont) return false;
 		}
 		return true;
 	}

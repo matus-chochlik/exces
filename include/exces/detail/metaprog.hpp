@@ -69,6 +69,25 @@ struct if_c<false, True, False>
 	typedef False type;
 };
 
+// and_c
+template <bool ... Values>
+struct and_c;
+
+template <>
+struct and_c<>
+ : integral_constant<bool, true>
+{ };
+
+template <bool Value1, bool Value2>
+struct and_c<Value1, Value2>
+ : integral_constant<bool, Value1 && Value2>
+{ };
+
+template <bool Value, bool ... Values>
+struct and_c<Value, Values...>
+ : integral_constant<bool, Value && and_c<Values...>::value>
+{ };
+
 // type list
 template <typename ... T>
 struct typelist
